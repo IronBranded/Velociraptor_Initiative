@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Velociraptor DFIR — Interactive Guide</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23e8830a'/><text x='16' y='22' font-family='monospace' font-size='16' font-weight='700' fill='white' text-anchor='middle'>VR</text></svg>">
+<style>
+/* ── Reset & Tokens ───────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f5f7;--sidebar:#1a1d2e;--sidebar-hover:rgba(255,255,255,.06);
+  --card:#ffffff;--border:#e2e4ec;--text:#1c2033;--muted:#6b7399;
+  --orange:#e8830a;--orange2:#f5960f;--teal:#1aab8a;--teal2:#15c4a2;
+  --navy:#1a1d2e;--row0:#fff;--row1:#f9fafb;
+  --code-bg:#f0f2f8;--code-text:#1a1d2e;--code-border:#c8ccdc;
+  --input:#fff;--input-border:#ccd0e0;
+  --tag-bg:#e8f4f0;--tag-text:#0f7a5f;
+  --ok:#1e8a5a;--warn:#c06000;--heading:#1a1d2e;
+  --accent-bg:#fff8ee;--scrollbar:#d0d3e0;
+  --sb-text:#b8bdd4;--sb-active:#fff;--sb-section:rgba(255,255,255,.3);
+  font-size:13px;
+}
+.dark{
+  --bg:#12141f;--card:#1c1f31;--border:#272b42;--text:#d4d8f0;--muted:#7880a8;
+  --row0:#1c1f31;--row1:#20243a;--code-bg:#0d0f1c;--code-text:#b8e0d0;
+  --code-border:#222644;--input:#161928;--input-border:#313659;
+  --tag-bg:#0d2d24;--tag-text:#3dd4aa;--ok:#3dd4aa;--warn:#e8a844;
+  --accent-bg:#1a1408;--heading:#e8dfc0;--scrollbar:#2a2e4a;
+}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+body{background:var(--bg);color:var(--text);transition:background .2s,color .2s}
+
+/* ── Scrollbars ───────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:3px}
+
+/* ── Layout ───────────────────────────────────────── */
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:220px;min-width:220px;background:var(--navy);display:flex;flex-direction:column;overflow:hidden;transition:width .2s}
+#sidebar.collapsed{width:52px;min-width:52px}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── Sidebar ──────────────────────────────────────── */
+.sb-logo{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;display:flex;align-items:center;gap:10px;overflow:hidden}
+.sb-logo-icon{width:30px;height:30px;background:var(--orange);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;letter-spacing:-1px}
+.sb-logo-text{overflow:hidden;white-space:nowrap;transition:opacity .15s}
+.sb-logo-title{color:#fff;font-size:14px;font-weight:600}
+.sb-logo-sub{color:rgba(255,255,255,.38);font-size:10px;margin-top:1px}
+#sidebar.collapsed .sb-logo-text{opacity:0;width:0}
+.sb-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 0}
+.sb-section{color:var(--sb-section);font-size:10px;font-weight:600;letter-spacing:.8px;padding:10px 16px 3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;transition:opacity .15s}
+#sidebar.collapsed .sb-section{opacity:0}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;color:var(--sb-text);font-size:12px;border-left:2px solid transparent;transition:all .15s;white-space:nowrap;overflow:hidden;user-select:none}
+.sb-item:hover{background:var(--sidebar-hover);color:#fff}
+.sb-item.active{background:rgba(232,131,10,.14);color:#fff;border-left-color:var(--orange)}
+.sb-icon{width:16px;height:16px;flex-shrink:0;opacity:.65;transition:opacity .15s}
+.sb-item:hover .sb-icon,.sb-item.active .sb-icon{opacity:1}
+.sb-label{overflow:hidden;transition:opacity .15s}
+#sidebar.collapsed .sb-label{opacity:0;width:0}
+.sb-bottom{padding:10px 12px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;overflow:hidden}
+.theme-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit}
+.theme-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+.collapse-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:5px;padding:4px 8px;font-size:12px;cursor:pointer;transition:all .15s;flex-shrink:0;font-family:inherit}
+.collapse-btn:hover{background:rgba(255,255,255,.16);color:#fff}
+#sidebar.collapsed .theme-btn{display:none}
+
+/* ── Topbar ───────────────────────────────────────── */
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;transition:background .2s,border-color .2s}
+.topbar-left{display:flex;flex-direction:column}
+.topbar-title{font-size:15px;font-weight:600;color:var(--heading);line-height:1.2}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.topbar-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;border-radius:10px;font-size:10px;font-weight:600;padding:2px 8px;line-height:1.6}
+.badge-ok{background:rgba(26,171,138,.15);color:var(--ok)}
+.badge-warn{background:rgba(200,100,0,.13);color:var(--warn)}
+.badge-info{background:rgba(26,83,200,.12);color:#3a7fd4}
+.badge-orange{background:rgba(232,131,10,.15);color:var(--orange)}
+.badge-red{background:rgba(200,40,40,.12);color:#c04040}
+
+/* ── Content Area ────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:18px 22px;background:var(--bg);transition:background .2s}
+.pane{display:none;animation:fadeIn .15s ease}
+.pane.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── Cards ───────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;transition:background .2s,border-color .2s}
+.card-title{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.ct{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ct-o{background:rgba(232,131,10,.18);color:var(--orange)}
+.ct-t{background:rgba(26,171,138,.18);color:var(--teal)}
+.ct-b{background:rgba(26,83,200,.18);color:#4a8fff}
+.ct-r{background:rgba(200,40,40,.18);color:#c04040}
+.ct-g{background:rgba(26,171,60,.18);color:#1aab3c}
+
+/* ── Grids ───────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:14px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media(max-width:800px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* ── Metrics ─────────────────────────────────────── */
+.metric{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;transition:background .2s}
+.m-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.m-value{font-size:24px;font-weight:700;color:var(--heading);line-height:1}
+.m-sub{font-size:10px;color:var(--ok);margin-top:4px}
+.m-sub.w{color:var(--warn)}
+
+/* ── Tables ──────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border-radius:7px;border:1px solid var(--border)}
+table.vt{width:100%;border-collapse:collapse;font-size:12px}
+table.vt th{background:var(--navy);color:rgba(255,255,255,.78);font-weight:600;font-size:10px;letter-spacing:.4px;text-transform:uppercase;padding:8px 10px;text-align:left;white-space:nowrap}
+table.vt td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
+table.vt tr:last-child td{border-bottom:none}
+table.vt tr:nth-child(odd) td{background:var(--row0)}
+table.vt tr:nth-child(even) td{background:var(--row1)}
+table.vt tr:hover td{background:rgba(26,171,138,.06)}
+code{font-family:Consolas,'Courier New',monospace;font-size:11px;background:var(--code-bg);color:var(--teal);padding:1px 5px;border-radius:3px;border:1px solid var(--code-border)}
+
+/* ── Code Blocks ─────────────────────────────────── */
+.cb{background:var(--code-bg);border:1px solid var(--code-border);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;padding:12px 14px;font-family:Consolas,'Courier New',monospace;font-size:12px;color:var(--code-text);line-height:1.75;white-space:pre;overflow-x:auto;margin:8px 0;position:relative;transition:background .2s}
+.kw{color:var(--orange);font-weight:600}
+.fn{color:var(--teal)}
+.str{color:#5c9}
+.cmt{color:var(--muted);font-style:italic}
+.copy-btn{position:absolute;top:6px;right:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-family:inherit;transition:all .15s}
+.copy-btn:hover{background:rgba(255,255,255,.18);color:#fff}
+
+/* ── Pills / Tags ────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;border-radius:4px;font-size:10px;font-weight:600;padding:2px 7px;margin:2px}
+.p-t{background:var(--tag-bg);color:var(--tag-text)}
+.p-o{background:rgba(232,131,10,.14);color:var(--orange)}
+.p-b{background:rgba(26,83,200,.11);color:#3a7fd4}
+.p-r{background:rgba(200,40,40,.11);color:#c04040}
+.p-g{background:rgba(26,171,60,.1);color:#1aab3c}
+
+/* ── Info Banner ─────────────────────────────────── */
+.banner{background:var(--accent-bg);border-left:3px solid var(--orange);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.6}
+.banner strong{color:var(--orange)}
+
+/* ── Tabs ────────────────────────────────────────── */
+.tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;gap:2px;overflow-x:auto;flex-shrink:0}
+.tab{padding:7px 14px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;user-select:none;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange)}
+.tab:hover:not(.active){color:var(--text)}
+.sp{display:none}.sp.active{display:block;animation:fadeIn .12s ease}
+
+/* ── Accordions ──────────────────────────────────── */
+.acc{border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:8px}
+.acc-h{padding:10px 14px;background:var(--row1);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:12px;color:var(--heading);user-select:none;transition:background .15s}
+.acc-h:hover{background:var(--row0)}
+.acc-arr{color:var(--orange);transition:transform .2s;font-size:14px}
+.acc-b{padding:12px 14px;font-size:12px;color:var(--text);line-height:1.7;display:none;border-top:1px solid var(--border)}
+.acc-b.open{display:block}
+
+/* ── Step Flow ───────────────────────────────────── */
+.flow{display:flex;flex-wrap:wrap;gap:0;margin:10px 0 14px}
+.step{background:var(--row1);border:1px solid var(--border);flex:1;min-width:80px;padding:9px 10px;font-size:11px;position:relative;text-align:center;transition:background .15s}
+.step:not(:last-child)::after{content:'›';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:var(--orange);font-size:16px;font-weight:700;z-index:1;pointer-events:none}
+.step:first-child{border-radius:6px 0 0 6px}
+.step:last-child{border-radius:0 6px 6px 0}
+.step-n{display:block;font-size:15px;font-weight:700;color:var(--orange);line-height:1.2}
+.step-l{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+
+/* ── VQL Demo ────────────────────────────────────── */
+.vql-demo{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;transition:background .2s}
+.vql-hdr{background:var(--navy);padding:8px 14px;display:flex;align-items:center;justify-content:space-between}
+.vql-dots{display:flex;gap:5px}
+.dot{width:10px;height:10px;border-radius:50%}
+.vql-name{color:rgba(255,255,255,.5);font-size:11px;font-family:Consolas,monospace}
+.run-btn{background:var(--orange);color:#fff;border:none;border-radius:4px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.run-btn:hover{background:var(--orange2);transform:scale(1.03)}
+.run-btn.done{background:var(--teal)}
+.vql-body{padding:12px 14px}
+.vql-result{margin-top:10px;border-radius:6px;overflow:hidden;border:1px solid var(--border);display:none}
+.vql-result.shown{display:block;animation:fadeIn .2s ease}
+
+/* ── Artifact Cards ──────────────────────────────── */
+.art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:8px}
+.art-card{background:var(--row1);border:1px solid var(--border);border-radius:7px;padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.art-card:hover{border-color:var(--teal);background:var(--row0)}
+.art-name{font-size:11px;font-weight:600;color:var(--heading);margin-bottom:3px;word-break:break-all;font-family:Consolas,monospace}
+.art-desc{font-size:10px;color:var(--muted);line-height:1.4;margin-bottom:5px}
+
+/* ── Client List ─────────────────────────────────── */
+.client-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;transition:background .1s;cursor:default}
+.client-row:last-child{border-bottom:none}
+.client-row:hover{background:var(--row1)}
+.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cdot.on{background:#22c55e}
+.cdot.away{background:#f59e0b}
+.cdot.off{background:#6b7399}
+.c-name{font-weight:600;color:var(--heading);flex:1}
+.c-meta{color:var(--muted);font-size:11px}
+
+/* ── Typography helpers ──────────────────────────── */
+.h2{font-size:14px;font-weight:600;color:var(--heading);margin:16px 0 8px}
+.h3{font-size:12px;font-weight:600;color:var(--orange);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.4px}
+.p{color:var(--text);font-size:12px;line-height:1.65;margin-bottom:8px}
+ul.vl{padding-left:16px;color:var(--text);font-size:12px;line-height:1.85}
+ul.vl li{margin-bottom:1px}
+.sep{height:1px;background:var(--border);margin:14px 0}
+.mono{font-family:Consolas,monospace;font-size:11px}
+
+/* ── Search ──────────────────────────────────────── */
+.search-wrap{position:relative;margin-bottom:12px}
+.search-wrap input{width:100%;padding:7px 12px 7px 32px;background:var(--input);border:1px solid var(--input-border);border-radius:6px;font-size:12px;color:var(--text);font-family:inherit;transition:border-color .15s}
+.search-wrap input:focus{outline:none;border-color:var(--teal)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+
+/* ── Notebook mockup ─────────────────────────────── */
+.nb-cell{background:var(--row1);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+.nb-cell-hdr{padding:5px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
+.nb-vql-hdr{background:rgba(26,171,138,.1);color:var(--teal);border-bottom:1px solid var(--border)}
+.nb-md-hdr{background:rgba(232,131,10,.08);color:var(--orange);border-bottom:1px solid var(--border)}
+.nb-cell-body{padding:10px 12px;font-size:12px;line-height:1.65}
+
+/* ── Architecture boxes ──────────────────────────── */
+.arch-box{flex:1;min-width:100px;border-radius:8px;padding:12px;text-align:center}
+.arch-box .ab-t{font-weight:600;font-size:12px;margin-bottom:4px}
+.arch-box .ab-s{font-size:10px;color:var(--muted);line-height:1.4}
+.arch-arrow{display:flex;align-items:center;color:var(--orange);font-size:20px;padding:0 2px;flex-shrink:0}
+
+/* ── Filter bar ──────────────────────────────────── */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.fbtn{background:var(--row1);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.fbtn:hover{border-color:var(--teal);color:var(--teal)}
+.fbtn.active{background:rgba(26,171,138,.12);border-color:var(--teal);color:var(--teal)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── Sidebar ── -->
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">VR</div>
+    <div class="sb-logo-text">
+      <div class="sb-logo-title">Velociraptor</div>
+      <div class="sb-logo-sub">Digging Deeper</div>
+    </div>
+  </div>
+  <div class="sb-nav" id="sbNav"></div>
+  <div class="sb-bottom">
+    <button class="theme-btn" id="themeBtn">☀ Light</button>
+    <button class="collapse-btn" id="collapseBtn" title="Toggle sidebar">‹</button>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div id="main">
+  <div id="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="tbTitle">Overview</div>
+      <div class="topbar-sub" id="tbSub">Velociraptor DFIR Platform — Interactive Guide</div>
+    </div>
+    <div class="topbar-badges">
+      <span class="badge badge-ok">v0.73.x</span>
+      <span class="badge badge-info">Open Source</span>
+      <span class="badge badge-orange">AGPL v3</span>
+      <a href="https://github.com/Velocidex/velociraptor" target="_blank" style="text-decoration:none"><span class="badge badge-warn">★ GitHub</span></a>
+    </div>
+  </div>
+  <div id="content"></div>
+</div>
+</div>
+
+<script>
+/* ── State ── */
+let isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+let sidebarCollapsed = false;
+
+/* ── Nav config ── */
+const NAV = [
+  {id:'overview',label:'Overview',icon:'◎',section:'Platform'},
+  {id:'quickstart',label:'Quick Start',icon:'▶'},
+  {id:'architecture',label:'Architecture',icon:'⬡'},
+  {id:'vql',label:'VQL Language',icon:'⌗',section:'Core Concepts'},
+  {id:'artifacts',label:'Artifacts',icon:'◈'},
+  {id:'clients',label:'Client Management',icon:'◉',section:'Operations'},
+  {id:'hunting',label:'Hunts & Hunting',icon:'◎'},
+  {id:'forensics',label:'Forensic Analysis',icon:'⬟'},
+  {id:'monitoring',label:'Live Monitoring',icon:'▣'},
+  {id:'offline',label:'Offline Collectors',icon:'⬡'},
+  {id:'notebooks',label:'Notebooks',icon:'▤'},
+  {id:'api',label:'Server API',icon:'⇄'},
+  {id:'reference',label:'Quick Reference',icon:'☰',section:'Reference'},
+];
+
+const TITLES = {overview:'Overview',quickstart:'Quick Start',architecture:'Architecture',vql:'VQL Language',artifacts:'Artifacts',clients:'Client Management',hunting:'Hunts & Hunting',forensics:'Forensic Analysis',monitoring:'Live Monitoring',offline:'Offline Collectors',notebooks:'Notebooks',api:'Server API & Automation',reference:'Quick Reference'};
+const SUBS = {overview:'Platform capabilities, deployment modes, and key facts',quickstart:'Download, instant GUI, and first VQL query',architecture:'Components, security model, scaling, and data flow',vql:'Syntax, plugins, functions, accessors, and examples',artifacts:'YAML structure, types, catalog, and writing tips',clients:'Searching, labeling, collecting, and managing endpoints',hunting:'Fleet-wide artifact collection and IOC hunting workflow',forensics:'Filesystem, execution evidence, event logs, memory, dead disk',monitoring:'Real-time event streaming and automated server-side alerting',offline:'Air-gapped and standalone collection without a persistent agent',notebooks:'Interactive investigation environments built into the GUI',api:'gRPC API, pyvelociraptor, SOAR integration, and automation',reference:'CLI commands, artifact index, ACL roles, and external resources'};
+
+/* ── Artifact catalog ── */
+const ARTS = [
+  {n:'Windows.System.Pslist',d:'Running processes with PID, PPID, command line',t:['windows','process'],c:'windows'},
+  {n:'Windows.Network.Netstat',d:'Network connections and listening ports',t:['windows','network'],c:'windows'},
+  {n:'Windows.Sys.StartupItems',d:'Persistence via startup registry keys',t:['windows','persistence'],c:'windows'},
+  {n:'Windows.System.Services',d:'Installed Windows services',t:['windows','persistence'],c:'windows'},
+  {n:'Windows.System.ScheduledTasks',d:'Scheduled task persistence',t:['windows','persistence'],c:'windows'},
+  {n:'Windows.Forensics.Prefetch',d:'Application execution history (Prefetch files)',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.Amcache',d:'Recently run software from Amcache.hve',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.ShimCache',d:'AppCompatCache execution evidence',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.SRUM',d:'Historical process, network, and battery usage',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.Bam',d:'Background Activity Monitor execution evidence',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.LnkFiles',d:'Recent file access via LNK link files',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.RecycleBin',d:'Files deleted to the Recycle Bin',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.EventLogs.EvtxHunter',d:'Hunt across all Windows event log channels',t:['windows','evtx'],c:'windows'},
+  {n:'Generic.Detection.Yara',d:'YARA scan files or process memory',t:['detection','yara'],c:'detection'},
+  {n:'Windows.Sigma.Base',d:'Apply Sigma rules to Windows event logs',t:['detection','sigma'],c:'detection'},
+  {n:'Windows.Detection.Yara.Process',d:'Scan all running process memory with YARA',t:['detection','yara','memory'],c:'detection'},
+  {n:'Linux.Sys.Pslist',d:'Running processes on Linux',t:['linux','process'],c:'linux'},
+  {n:'Linux.Sys.LastLogon',d:'Recent login history on Linux systems',t:['linux','auth'],c:'linux'},
+  {n:'Linux.Sys.Crontab',d:'Cron-based persistence entries',t:['linux','persistence'],c:'linux'},
+  {n:'Linux.Sys.BashHistory',d:'Bash command history for all users',t:['linux','forensics'],c:'linux'},
+  {n:'Generic.Forensics.SQLiteHunter',d:'Browser history, cookies, and SQLite DBs',t:['forensics','browser'],c:'forensics'},
+  {n:'Server.Utils.CreateCollector',d:'Build a standalone offline collector binary',t:['server','utility'],c:'windows'},
+];
+
+/* ── Pane content ── */
+function paneOverview(){return`
+<div class="g3">
+  <div class="metric"><div class="m-label">Max clients (single node)</div><div class="m-value">15K</div><div class="m-sub">per frontend</div></div>
+  <div class="metric"><div class="m-label">Max clients (multi-frontend)</div><div class="m-value">100K+</div><div class="m-sub">horizontally scaled</div></div>
+  <div class="metric"><div class="m-label">VQL plugins</div><div class="m-value">350+</div><div class="m-sub w">and growing</div></div>
+</div>
+<div class="banner"><strong>What is Velociraptor?</strong> An open-source endpoint monitoring, DFIR, and IR platform. A single binary — no database, no installer. Built around VQL, a forensic query language that runs natively on endpoints. Developed by Velocidex, now supported by Rapid7.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">★</span> Core Capabilities</div>
+    <ul class="vl">
+      <li>Scalable artifact collection across large fleets</li>
+      <li>VQL — SQL-like language purpose-built for DFIR</li>
+      <li>Real-time endpoint event monitoring and alerting</li>
+      <li>Offline collectors for air-gapped or isolated systems</li>
+      <li>Dead-disk analysis from raw images (E01, DD, VMDK)</li>
+      <li>YARA and Sigma rule integration</li>
+      <li>Virtual File System for remote file browsing</li>
+      <li>Interactive Notebooks for collaborative investigation</li>
+      <li>Multi-org support for MSSP deployments</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">▣</span> Deployment Modes</div>
+    <div class="tbl-wrap">
+    <table class="vt">
+      <tr><th>Mode</th><th>Description</th></tr>
+      <tr><td><span class="pill p-o">Instant GUI</span></td><td>All-in-one local testing, no setup</td></tr>
+      <tr><td><span class="pill p-t">Client-Server</span></td><td>Production persistent agent fleet</td></tr>
+      <tr><td><span class="pill p-b">Offline Collector</span></td><td>Standalone ZIP collection, no agent</td></tr>
+      <tr><td><span class="pill p-r">CLI / Query</span></td><td>One-shot VQL from the command line</td></tr>
+      <tr><td><span class="pill p-t">Dead-Disk</span></td><td>VQL against raw disk images</td></tr>
+    </table>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-b">i</span> Project Info</div>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px">
+    <span style="color:var(--muted)">Author: <strong style="color:var(--text)">Velocidex / Rapid7</strong></span>
+    <span style="color:var(--muted)">License: <strong style="color:var(--text)">AGPL v3</strong></span>
+    <span style="color:var(--muted)">Language: <strong style="color:var(--text)">Go</strong></span>
+    <span style="color:var(--muted)">GitHub Stars: <strong style="color:var(--text)">3.8k+</strong></span>
+    <span style="color:var(--muted)">Latest: <strong style="color:var(--teal)">v0.73.x</strong></span>
+    <span style="color:var(--muted)">Docs: <a href="https://docs.velociraptor.app" target="_blank" style="color:var(--teal)">docs.velociraptor.app</a></span>
+  </div>
+</div>`;}
+
+function paneQuickstart(){return`
+<div class="banner"><strong>Zero-install.</strong> Velociraptor is a single static binary. Download it, make it executable, and run. No database, no dependencies, no installer required.</div>
+<div class="h2">1 — Download the binary</div>
+<div class="cb"><span class="cmt"># Find the latest release at:</span>
+https://github.com/Velocidex/velociraptor/releases
+
+<span class="cmt"># Linux (make executable)</span>
+chmod +x velociraptor-linux-amd64
+
+<span class="cmt"># macOS</span>
+chmod +x velociraptor-darwin-amd64
+
+<span class="cmt"># Windows — just run the .exe</span></div>
+<div class="h2">2 — Launch the instant GUI</div>
+<div class="cb"><span class="cmt"># All-in-one: server + client + GUI in one command</span>
+<span class="fn">velociraptor</span> gui
+
+<span class="cmt"># Opens your browser at https://localhost:8889</span>
+<span class="cmt"># Default credentials: admin / password</span>
+<span class="cmt"># Temp data store created automatically — nothing permanent</span></div>
+<div class="h2">3 — Generate a production server config</div>
+<div class="cb"><span class="cmt"># Interactive wizard — sets TLS, data store path, ports</span>
+<span class="fn">velociraptor</span> config generate -i
+
+<span class="cmt"># Start the frontend server (verbose logging)</span>
+<span class="fn">velociraptor</span> --config server.config.yaml frontend -v
+
+<span class="cmt"># Create the first admin user</span>
+<span class="fn">velociraptor</span> --config server.config.yaml user add admin --role administrator</div>
+<div class="h2">4 — Run your first VQL query</div>
+<div class="vql-demo">
+  <div class="vql-hdr">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+      <span class="vql-name">Notebook — Cell 1 — List running processes</span>
+    </div>
+    <button class="run-btn" onclick="runVQL(this,'qs1')">▶ Run</button>
+  </div>
+  <div class="vql-body">
+    <div class="cb" style="margin:0"><span class="kw">SELECT</span> Name, Pid, CommandLine <span class="kw">FROM</span> <span class="fn">pslist</span>()</div>
+    <div class="vql-result" id="qs1">
+      <table class="vt"><tr><th>Name</th><th>Pid</th><th>CommandLine</th></tr>
+      <tr><td>velociraptor.exe</td><td>4821</td><td>velociraptor gui</td></tr>
+      <tr><td>chrome.exe</td><td>2340</td><td>C:\Program Files\Chrome\chrome.exe</td></tr>
+      <tr><td>svchost.exe</td><td>880</td><td>C:\Windows\System32\svchost.exe -k netsvcs</td></tr>
+      <tr><td>powershell.exe</td><td>5512</td><td>powershell.exe -ExecutionPolicy Bypass</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="h2">5 — Install client as a service</div>
+<div class="cb"><span class="cmt"># Windows (run as Administrator)</span>
+<span class="fn">velociraptor</span> --config client.config.yaml service install
+
+<span class="cmt"># Linux (creates systemd unit)</span>
+<span class="fn">velociraptor</span> --config client.config.yaml service install
+sudo systemctl enable velociraptor_client
+sudo systemctl start velociraptor_client</div>`;}
+
+function paneArchitecture(){return`
+<div class="h2">Component Overview</div>
+<div class="card">
+  <div style="display:flex;align-items:stretch;gap:4px;flex-wrap:wrap">
+    <div class="arch-box" style="background:rgba(232,131,10,.1);border:1px solid rgba(232,131,10,.25)">
+      <div class="ab-t" style="color:var(--orange)">GUI / API</div>
+      <div class="ab-s">HTTPS :8889<br>gRPC API :8001</div>
+    </div>
+    <div class="arch-arrow">⇕</div>
+    <div class="arch-box" style="background:rgba(26,171,138,.1);border:1px solid rgba(26,171,138,.25)">
+      <div class="ab-t" style="color:var(--teal)">Frontend Server</div>
+      <div class="ab-s">TLS :8000<br>VQL Engine</div>
+    </div>
+    <div class="arch-arrow">⇕</div>
+    <div class="arch-box" style="background:rgba(26,83,200,.1);border:1px solid rgba(26,83,200,.25)">
+      <div class="ab-t" style="color:#4a8fff">Data Store</div>
+      <div class="ab-s">Flat files<br>No external DB</div>
+    </div>
+    <div class="arch-arrow">⇕</div>
+    <div class="arch-box" style="background:rgba(200,40,40,.08);border:1px solid rgba(200,40,40,.2)">
+      <div class="ab-t" style="color:#c04040">Clients</div>
+      <div class="ab-s">Persistent agents<br>VQL executor</div>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◆</span> Design Decisions</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Decision</th><th>Rationale</th></tr>
+      <tr><td>Single binary</td><td>Zero install friction on endpoints</td></tr>
+      <tr><td>Flat file datastore</td><td>No Elasticsearch/Postgres dependency</td></tr>
+      <tr><td>mTLS everywhere</td><td>Client authentication + encryption</td></tr>
+      <tr><td>VQL runs on client</td><td>Compute at edge, only results sent back</td></tr>
+      <tr><td>Streaming results</td><td>Handles very large artifact outputs safely</td></tr>
+      <tr><td>Go language</td><td>Single static binary for all platforms</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-r">🔒</span> Security Model</div>
+    <ul class="vl">
+      <li>Mutual TLS (mTLS) between server and all clients</li>
+      <li>Server config holds private CA — store it securely</li>
+      <li>Client config embeds server cert pin</li>
+      <li>GUI protected by username + optional TOTP 2FA</li>
+      <li>Role-based ACLs: Administrator, Investigator, Analyst, API, Reader</li>
+      <li>Org-level tenant isolation for MSSP deployments</li>
+      <li>API keys with scoped certificate-based credentials</li>
+      <li>Audit log of all user actions and collections</li>
+    </ul>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-o">⬡</span> Multi-Frontend Scaling</div>
+  <div class="p">For deployments beyond ~15,000 clients, Velociraptor supports multi-frontend mode. Multiple frontend nodes share a replicated data store, and a load balancer distributes client connections. Each node handles ~15K clients independently.</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="pill p-t">Frontend 1 → ~15K clients</span>
+    <span class="pill p-t">Frontend 2 → ~15K clients</span>
+    <span class="pill p-t">Frontend N → ~15K clients</span>
+    <span class="pill p-o">Shared replicated data store</span>
+    <span class="pill p-b">Load balancer (ALB / nginx)</span>
+  </div>
+</div>`;}
+
+function paneVQL(){return`
+<div id="vql-tabs" class="tab-bar">
+  <button class="tab active" data-target="vt1">Syntax Basics</button>
+  <button class="tab" data-target="vt2">Plugins</button>
+  <button class="tab" data-target="vt3">Live Examples</button>
+  <button class="tab" data-target="vt4">Advanced VQL</button>
+</div>
+<div id="vt1" class="sp active">
+  <div class="banner"><strong>VQL</strong> is a SQL-like query language purpose-built for DFIR. Queries run on the endpoint (or server) and return rows of forensic data from <em>plugins</em>.</div>
+  <div class="cb"><span class="kw">SELECT</span> col1, col2       <span class="cmt">-- fields to return (* for all)</span>
+<span class="kw">FROM</span>   <span class="fn">plugin_name</span>(arg=<span class="str">'value'</span>)  <span class="cmt">-- data source plugin</span>
+<span class="kw">WHERE</span>  condition         <span class="cmt">-- filter rows</span>
+<span class="kw">ORDER BY</span> col1 <span class="kw">DESC</span>     <span class="cmt">-- sort results</span>
+<span class="kw">LIMIT</span>  100              <span class="cmt">-- cap row count</span></div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Clause / Operator</th><th>Purpose</th><th>Example</th></tr>
+    <tr><td><code>SELECT</code></td><td>Choose output columns</td><td>SELECT Name, Pid</td></tr>
+    <tr><td><code>FROM</code></td><td>Name the plugin or artifact</td><td>FROM pslist()</td></tr>
+    <tr><td><code>WHERE</code></td><td>Filter rows</td><td>WHERE Pid &gt; 1000</td></tr>
+    <tr><td><code>LET</code></td><td>Define a named sub-query or variable</td><td>LET x = SELECT ...</td></tr>
+    <tr><td><code>GROUP BY</code></td><td>Aggregate rows</td><td>GROUP BY Name</td></tr>
+    <tr><td><code>ORDER BY</code></td><td>Sort results</td><td>ORDER BY Mtime DESC</td></tr>
+    <tr><td><code>LIMIT</code></td><td>Cap row count</td><td>LIMIT 100</td></tr>
+    <tr><td><code>=~</code></td><td>Regex match (case-insensitive)</td><td>Name =~ "svc"</td></tr>
+    <tr><td><code>!~</code></td><td>Regex NOT match</td><td>Name !~ "system"</td></tr>
+    <tr><td><code>AS</code></td><td>Alias a column</td><td>hash(...).MD5 AS MD5</td></tr>
+    <tr><td><code>foreach()</code></td><td>Iterate sub-queries over rows</td><td>SELECT * FROM foreach(...)</td></tr>
+  </table></div>
+</div>
+<div id="vt2" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Plugin</th><th>Category</th><th>Description</th></tr>
+    <tr><td><code>pslist()</code></td><td><span class="pill p-o">Process</span></td><td>Running processes: PID, PPID, name, cmdline, create time</td></tr>
+    <tr><td><code>netstat()</code></td><td><span class="pill p-o">Network</span></td><td>Network connections and listening ports with owning PID</td></tr>
+    <tr><td><code>glob(globs=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>Wildcard file search — supports **, *, ? patterns</td></tr>
+    <tr><td><code>stat(filename=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>File metadata: size, timestamps, permissions, owner</td></tr>
+    <tr><td><code>read_file(filename=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>Read file contents as string or bytes</td></tr>
+    <tr><td><code>hash(path=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>Compute MD5 / SHA1 / SHA256 of a file</td></tr>
+    <tr><td><code>parse_evtx(filename=...)</code></td><td><span class="pill p-b">Event Logs</span></td><td>Parse Windows .evtx event log files</td></tr>
+    <tr><td><code>parse_mft()</code></td><td><span class="pill p-b">NTFS</span></td><td>Parse NTFS MFT — full filesystem timeline including deleted</td></tr>
+    <tr><td><code>parse_usn(device=...)</code></td><td><span class="pill p-b">NTFS</span></td><td>Parse USN Change Journal for file activity history</td></tr>
+    <tr><td><code>yara(rules=..., files=...)</code></td><td><span class="pill p-r">Detection</span></td><td>Scan files or process memory with YARA rules</td></tr>
+    <tr><td><code>sigma(rules=...)</code></td><td><span class="pill p-r">Detection</span></td><td>Apply Sigma detection rules to log data</td></tr>
+    <tr><td><code>wmi(query=...)</code></td><td><span class="pill p-o">Windows</span></td><td>Execute WMI queries on Windows</td></tr>
+    <tr><td><code>environ()</code></td><td><span class="pill p-o">System</span></td><td>Environment variables for current or target process</td></tr>
+    <tr><td><code>upload(file=...)</code></td><td><span class="pill p-t">Collection</span></td><td>Upload file from client to server data store</td></tr>
+    <tr><td><code>http_client(url=...)</code></td><td><span class="pill p-b">Network</span></td><td>HTTP requests from VQL (webhooks, enrichment, SOAR)</td></tr>
+    <tr><td><code>watch_monitoring(...)</code></td><td><span class="pill p-r">Events</span></td><td>Subscribe to CLIENT_EVENT artifact streams server-side</td></tr>
+  </table></div>
+</div>
+<div id="vt3" class="sp">
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Find PowerShell processes</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'ex1')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> Pid, Ppid, Name, CommandLine, CreateTime
+<span class="kw">FROM</span> <span class="fn">pslist</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"powershell"</span></div>
+      <div class="vql-result" id="ex1"><table class="vt">
+        <tr><th>Pid</th><th>Ppid</th><th>Name</th><th>CommandLine</th><th>CreateTime</th></tr>
+        <tr><td>5512</td><td>3120</td><td>powershell.exe</td><td>powershell -enc JAB...</td><td>2025-03-24 09:12</td></tr>
+        <tr><td>7840</td><td>880</td><td>powershell.exe</td><td>powershell.exe -ep bypass -c IEX</td><td>2025-03-24 11:45</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Hash small exes in System32</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'ex2')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> FullPath, Size, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256, Mtime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Windows/System32/*.exe"</span>)
+<span class="kw">WHERE</span> Size &lt; <span class="str">10000</span>
+<span class="kw">ORDER BY</span> Size</div>
+      <div class="vql-result" id="ex2"><table class="vt">
+        <tr><th>FullPath</th><th>Size</th><th>SHA256</th><th>Mtime</th></tr>
+        <tr><td>C:\Windows\System32\reg.exe</td><td>6144</td><td>a3c2a...</td><td>2023-10-11</td></tr>
+        <tr><td>C:\Windows\System32\suspect.exe</td><td>4096</td><td>00000...</td><td>2025-03-22</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Security log — logon events (4624)</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'ex3')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> System.TimeCreated, EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP, EventData.LogonType
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span> <span class="kw">LIMIT</span> <span class="str">5</span></div>
+      <div class="vql-result" id="ex3"><table class="vt">
+        <tr><th>TimeCreated</th><th>User</th><th>SourceIP</th><th>LogonType</th></tr>
+        <tr><td>2025-03-24 08:01</td><td>jsmith</td><td>10.0.0.14</td><td>3 (Network)</td></tr>
+        <tr><td>2025-03-24 09:23</td><td>badactor</td><td><strong style="color:#c04040">185.220.101.x</strong></td><td>10 (RemoteInteractive)</td></tr>
+      </table></div>
+    </div>
+  </div>
+</div>
+<div id="vt4" class="sp">
+  <div class="h3">LET — Named Sub-queries</div>
+  <div class="cb"><span class="cmt">-- Define a reusable result set</span>
+<span class="kw">LET</span> suspicious = <span class="kw">SELECT</span> Pid, Name, CommandLine
+  <span class="kw">FROM</span> <span class="fn">pslist</span>() <span class="kw">WHERE</span> CommandLine <span class="kw">=~</span> <span class="str">"mimikatz|beacon|cobalt"</span>
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> suspicious <span class="kw">WHERE</span> Pid > <span class="str">1000</span></div>
+  <div class="h3">foreach — Iterate Over Rows</div>
+  <div class="cb"><span class="cmt">-- For each suspicious process, list its network connections</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid <span class="kw">FROM</span> suspicious },
+  query={ <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">netstat</span>() <span class="kw">WHERE</span> Pid = Pid }
+)</div>
+  <div class="h3">Accessors — Filesystem Abstraction Layer</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Accessor</th><th>Description</th></tr>
+    <tr><td><code>file</code></td><td>Default OS filesystem — subject to OS buffering and ACLs</td></tr>
+    <tr><td><code>ntfs</code></td><td>Low-level NTFS: bypasses OS cache, exposes ADS, $MFT, $LogFile</td></tr>
+    <tr><td><code>raw_reg</code></td><td>Direct registry hive parsing without registry API</td></tr>
+    <tr><td><code>zip</code></td><td>Browse inside ZIP, EVTX, or other container files</td></tr>
+    <tr><td><code>s3</code></td><td>AWS S3 bucket access for cloud artifact collection</td></tr>
+    <tr><td><code>smb</code></td><td>Remote SMB share access</td></tr>
+  </table></div>
+  <div class="cb"><span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">glob</span>(
+  globs=<span class="str">"/**/*.exe"</span>,
+  accessor=<span class="str">"ntfs"</span>  <span class="cmt">-- bypass OS, see hidden and locked files</span>
+)</div>
+</div>`;}
+
+function paneArtifacts(){return`
+<div id="art-tabs" class="tab-bar">
+  <button class="tab active" data-target="at1">Structure</button>
+  <button class="tab" data-target="at2">Types</button>
+  <button class="tab" data-target="at3">Catalog</button>
+  <button class="tab" data-target="at4">Writing Tips</button>
+</div>
+<div id="at1" class="sp active">
+  <div class="banner"><strong>Artifacts</strong> are the primary unit of shareable, parameterized VQL in Velociraptor. They give complex queries a human-readable name, documentation, configurable parameters, and optional preconditions.</div>
+  <div class="cb"><span class="kw">name:</span> <span class="str">Custom.Windows.SuspiciousExes</span>
+<span class="kw">description:</span> <span class="str">Find small unsigned executables in System32.</span>
+<span class="kw">author:</span> <span class="str">SOC Team</span>
+<span class="kw">type:</span> <span class="str">CLIENT</span>
+<span class="kw">parameters:</span>
+  - <span class="kw">name:</span> <span class="str">MaxSize</span>
+    <span class="kw">default:</span> <span class="str">"10000"</span>
+    <span class="kw">description:</span> <span class="str">Max file size in bytes</span>
+    <span class="kw">type:</span> <span class="str">int</span>
+<span class="kw">precondition:</span> <span class="str">SELECT OS From info() where OS = 'windows'</span>
+<span class="kw">sources:</span>
+  - <span class="kw">name:</span> <span class="str">SuspiciousExes</span>
+    <span class="kw">query:</span> |
+      <span class="kw">SELECT</span> FullPath, Size, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256
+      <span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Windows/System32/*.exe"</span>)
+      <span class="kw">WHERE</span> Size &lt; MaxSize</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    <tr><td><code>name</code></td><td><span class="badge badge-ok">Yes</span></td><td>Unique dot-namespaced ID, e.g. Windows.Forensics.Prefetch</td></tr>
+    <tr><td><code>description</code></td><td><span class="badge badge-warn">Rec.</span></td><td>Human-readable explanation shown in GUI</td></tr>
+    <tr><td><code>author</code></td><td>No</td><td>Artifact author attribution</td></tr>
+    <tr><td><code>type</code></td><td><span class="badge badge-warn">Rec.</span></td><td>CLIENT, SERVER, CLIENT_EVENT, SERVER_EVENT, NOTEBOOK</td></tr>
+    <tr><td><code>parameters</code></td><td>No</td><td>Inputs with name, default, type (int/bool/string/yara/regex/csv)</td></tr>
+    <tr><td><code>sources</code></td><td><span class="badge badge-ok">Yes</span></td><td>Named query blocks — each produces a separate result table</td></tr>
+    <tr><td><code>precondition</code></td><td>No</td><td>VQL expression — artifact skips if this returns no rows</td></tr>
+    <tr><td><code>tools</code></td><td>No</td><td>External binaries Velociraptor fetches, caches, and distributes</td></tr>
+    <tr><td><code>resources</code></td><td>No</td><td>cpu_limit, max_rows, timeout, max_upload_bytes</td></tr>
+    <tr><td><code>export</code></td><td>No</td><td>VQL functions/constants exported for other artifacts to import</td></tr>
+  </table></div>
+</div>
+<div id="at2" class="sp">
+  <div class="g2">
+    <div class="card" style="border-left:3px solid var(--teal)">
+      <div class="card-title">CLIENT</div>
+      <div class="p">Runs on an endpoint when triggered by a collection or hunt. Results stream to the server. Most artifacts are this type.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">CLIENT</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--orange)">
+      <div class="card-title">CLIENT_EVENT</div>
+      <div class="p">Runs continuously on the endpoint, streaming events in real time. Persists until removed. Used for detection, monitoring, and alerting.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">CLIENT_EVENT</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid #4a8fff">
+      <div class="card-title">SERVER</div>
+      <div class="p">Runs on the Velociraptor server. Used for post-processing hunt results, enrichment, sending notifications, and server-side automation.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">SERVER</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid #c04040">
+      <div class="card-title">SERVER_EVENT</div>
+      <div class="p">Continuous server-side monitoring. Can watch CLIENT_EVENT streams and trigger automated responses — webhooks, SOAR, notifications.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">SERVER_EVENT</span></div>
+    </div>
+  </div>
+</div>
+<div id="at3" class="sp">
+  <div class="filter-bar" id="artFilterBar">
+    <button class="fbtn active" onclick="filterArts('all',this)">All</button>
+    <button class="fbtn" onclick="filterArts('windows',this)">Windows</button>
+    <button class="fbtn" onclick="filterArts('linux',this)">Linux</button>
+    <button class="fbtn" onclick="filterArts('detection',this)">Detection</button>
+    <button class="fbtn" onclick="filterArts('forensics',this)">Forensics</button>
+  </div>
+  <div class="art-grid" id="artGrid"></div>
+</div>
+<div id="at4" class="sp">
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Naming conventions</span><span class="acc-arr">›</span></div><div class="acc-b">Use dot-namespaced names: <code>OS.Category.Sub</code>. Built-ins follow this convention: <code>Windows.Forensics.Prefetch</code>, <code>Linux.Sys.Pslist</code>, <code>Generic.Detection.Yara</code>. Custom artifacts should start with your org name to avoid conflicts with future built-ins: <code>Acme.Detection.Beacon</code>, <code>Corp.IR.Triage</code>.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Parameter types</span><span class="acc-arr">›</span></div><div class="acc-b">Available parameter types: <code>string</code>, <code>int</code>, <code>bool</code>, <code>timestamp</code>, <code>choices</code>, <code>csv</code>, <code>json</code>, <code>yara</code>, <code>regex</code>, <code>upload</code>. Always provide sensible defaults so analysts can run without configuring everything. The <code>yara</code> and <code>regex</code> types give analysts a multiline editor in the GUI.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Resource limits</span><span class="acc-arr">›</span></div><div class="acc-b">Add a <code>resources</code> block to prevent runaway artifacts from degrading endpoint performance. Key fields: <code>cpu_limit: 50</code> (percent), <code>max_rows: 100000</code>, <code>timeout: 300</code> (seconds), <code>max_upload_bytes: 1000000000</code>. These are enforced by the client-side VQL engine.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Multiple sources</span><span class="acc-arr">›</span></div><div class="acc-b">Artifacts support multiple named <code>sources</code>, each producing a separate result table shown as tabs in the GUI. Use this to collect related but distinct data in one artifact — e.g. one source for processes, another for network connections, and a third for startup items.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Importing and exporting</span><span class="acc-arr">›</span></div><div class="acc-b">Use the <code>export</code> field to expose VQL functions and constants that other artifacts can <code>import</code>. This enables composability and prevents code duplication across your artifact library. Import with: <code>import: - path: Custom.Helpers.Shared</code> in the importing artifact.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Artifact Exchange</span><span class="acc-arr">›</span></div><div class="acc-b">The <a href="https://docs.velociraptor.app/exchange/" target="_blank" style="color:var(--teal)">Artifact Exchange</a> hosts hundreds of community-contributed artifacts. Import them directly in the GUI under <em>View Artifacts → Add Artifact → Import from Exchange</em>. Review the VQL before deploying in production.</div></div>
+</div>`;}
+
+function paneClients(){return`
+<div class="card">
+  <div class="card-title"><span class="ct ct-t">◉</span> Connected Clients (Sample)</div>
+  <div class="client-row"><div class="cdot on"></div><div class="c-name">WIN-DC01.corp.local</div><div class="c-meta">Windows Server 2022 · 10.0.0.1 · Online now</div><span class="badge badge-ok">Online</span></div>
+  <div class="client-row"><div class="cdot on"></div><div class="c-name">WIN-WS042.corp.local</div><div class="c-meta">Windows 11 22H2 · 10.0.0.42 · Online now</div><span class="badge badge-ok">Online</span></div>
+  <div class="client-row"><div class="cdot on"></div><div class="c-name">LINUX-WEB01</div><div class="c-meta">Ubuntu 22.04 LTS · 10.0.1.10 · Online now</div><span class="badge badge-ok">Online</span></div>
+  <div class="client-row"><div class="cdot away"></div><div class="c-name">WIN-LAPTOP99.corp.local</div><div class="c-meta">Windows 10 21H2 · 192.168.1.99 · 2 hours ago</div><span class="badge badge-warn">Away</span></div>
+  <div class="client-row"><div class="cdot off"></div><div class="c-name">WIN-SERVER03</div><div class="c-meta">Windows Server 2019 · 10.0.0.3 · 2 days ago</div><span class="badge badge-info">Offline</span></div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">⚒</span> Per-Client Actions</div>
+    <ul class="vl">
+      <li>Collect Artifacts — trigger one-shot collections</li>
+      <li>Live Shell — real-time OS command execution</li>
+      <li>VFS Browser — remote filesystem navigation</li>
+      <li>Client Events — manage monitoring artifacts</li>
+      <li>Quarantine — isolate endpoint from network</li>
+      <li>Kill / Suspend process by PID</li>
+      <li>Apply or remove labels for grouping</li>
+      <li>Set key-value metadata on clients</li>
+      <li>View interrogation info (OS, hostname, IPs)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">⚙</span> Deployment Methods</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Method</th><th>Platform</th></tr>
+      <tr><td>GPO + MSI package</td><td>Windows Enterprise</td></tr>
+      <tr><td>SCCM / Intune</td><td>Windows MDM</td></tr>
+      <tr><td>Ansible / Chef / Puppet</td><td>Linux / Cross-platform</td></tr>
+      <tr><td>velociraptor service install</td><td>Any (manual)</td></tr>
+      <tr><td>Cloud init / userdata</td><td>AWS / GCP / Azure VMs</td></tr>
+      <tr><td>Docker / Kubernetes</td><td>Container environments</td></tr>
+    </table></div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-t">◈</span> Searching for Clients</div>
+  <div class="p">The client search bar supports multiple search types to quickly find endpoints:</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Query</th><th>Effect</th></tr>
+    <tr><td><code>hostname:WIN-DC01</code></td><td>Match by hostname substring</td></tr>
+    <tr><td><code>label:Servers</code></td><td>All clients with the "Servers" label</td></tr>
+    <tr><td><code>os:windows</code></td><td>All Windows clients</td></tr>
+    <tr><td><code>ip:10.0.0.</code></td><td>Clients with IPs matching prefix</td></tr>
+    <tr><td><code>C.1234abcd</code></td><td>Exact client ID lookup</td></tr>
+  </table></div>
+</div>`;}
+
+function paneHunting(){return`
+<div class="banner"><strong>Hunts</strong> push artifact collections to all matching endpoints simultaneously. A hunt can reach thousands of clients in seconds and aggregate results centrally — no manual per-client work required.</div>
+<div class="h2">Hunt Workflow</div>
+<div class="flow">
+  <div class="step"><span class="step-n">1</span><span class="step-l">Select Artifact</span></div>
+  <div class="step"><span class="step-n">2</span><span class="step-l">Configure Params</span></div>
+  <div class="step"><span class="step-n">3</span><span class="step-l">Target Clients</span></div>
+  <div class="step"><span class="step-n">4</span><span class="step-l">Launch Hunt</span></div>
+  <div class="step"><span class="step-n">5</span><span class="step-l">Monitor Progress</span></div>
+  <div class="step"><span class="step-n">6</span><span class="step-l">Triage Results</span></div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">⬡</span> Hunt Targeting Options</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Target</th><th>Description</th></tr>
+      <tr><td>All Clients</td><td>Every currently enrolled endpoint</td></tr>
+      <tr><td>By Label</td><td>Tagged groups: "Servers", "Finance", "Tier1"</td></tr>
+      <tr><td>By OS</td><td>Windows / Linux / macOS separately</td></tr>
+      <tr><td>By Condition</td><td>VQL expression evaluated against client info</td></tr>
+      <tr><td>By Client ID list</td><td>Explicit list of client IDs</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">★</span> Result Export Options</div>
+    <ul class="vl">
+      <li>Per-client results in the GUI Clients tab</li>
+      <li>Download full results as CSV</li>
+      <li>Download full results as JSONL</li>
+      <li>Post-process with a SERVER artifact in a Notebook</li>
+      <li>Stream to Splunk / Elastic / SIEM via API</li>
+      <li>Trigger automated follow-up via SERVER_EVENT</li>
+    </ul>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-r">◎</span> IOC-to-Hunt in Under 5 Minutes</div>
+  <div class="flow">
+    <div class="step"><span class="step-n" style="font-size:10px">Advisory</span><span class="step-l">Receive IOC</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Artifact</span><span class="step-l">Write or find</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Test</span><span class="step-l">Single client</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Hunt</span><span class="step-l">Full fleet</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Triage</span><span class="step-l">Positive hits</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">IR</span><span class="step-l">Respond</span></div>
+  </div>
+</div>
+<div class="h3">YARA Hunt — Cobalt Strike Beacon</div>
+<div class="cb"><span class="kw">LET</span> YaraRule = <span class="str">'''
+rule CobaltStrikeBeacon {
+  strings:
+    $x1 = { FC 48 83 E4 F0 }
+    $x2 = "ReflectiveLoader" ascii
+  condition: any of them
+}
+'''</span>
+
+<span class="kw">SELECT</span> FullPath, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256, Rule
+<span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, files=<span class="str">"C:/Windows/**/*.dll"</span>)</div>`;}
+
+function paneForensics(){return`
+<div id="for-tabs" class="tab-bar">
+  <button class="tab active" data-target="ft1">Filesystem</button>
+  <button class="tab" data-target="ft2">Execution Evidence</button>
+  <button class="tab" data-target="ft3">Event Log IDs</button>
+  <button class="tab" data-target="ft4">Memory</button>
+  <button class="tab" data-target="ft5">Dead Disk</button>
+</div>
+<div id="ft1" class="sp active">
+  <div class="h3">Filesystem & NTFS Forensics</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Technique</th><th>VQL / Artifact</th></tr>
+    <tr><td>Full filesystem glob</td><td><code>glob(globs="/**/*.exe", accessor="ntfs")</code></td></tr>
+    <tr><td>MFT timeline (incl. deleted)</td><td><code>parse_mft()</code></td></tr>
+    <tr><td>USN Change Journal</td><td><code>parse_usn(device="\\\.\\C:")</code></td></tr>
+    <tr><td>Alternate Data Streams</td><td>ntfs accessor — appends <code>:stream_name</code></td></tr>
+    <tr><td>File hash verification</td><td><code>hash(path=X).SHA256</code></td></tr>
+    <tr><td>Recycle Bin artifacts</td><td>Windows.Forensics.RecycleBin</td></tr>
+    <tr><td>LNK / Recent files</td><td>Windows.Forensics.LnkFiles</td></tr>
+    <tr><td>Zone.Identifier (download history)</td><td>ntfs accessor on :Zone.Identifier stream</td></tr>
+  </table></div>
+</div>
+<div id="ft2" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Artifact</th><th>Evidence Type</th><th>Location</th></tr>
+    <tr><td>Windows.Forensics.Prefetch</td><td>Prefetch execution records</td><td>C:\Windows\Prefetch\</td></tr>
+    <tr><td>Windows.Forensics.Amcache</td><td>Recently executed software + SHA1</td><td>Amcache.hve registry hive</td></tr>
+    <tr><td>Windows.Forensics.ShimCache</td><td>AppCompatCache execution list</td><td>SYSTEM hive, ControlSet</td></tr>
+    <tr><td>Windows.Forensics.SRUM</td><td>Historical process and network activity</td><td>C:\Windows\System32\sru\</td></tr>
+    <tr><td>Windows.Forensics.Bam</td><td>Background Activity Monitor (last run time)</td><td>SYSTEM hive, Services\bam</td></tr>
+    <tr><td>Windows.System.Pslist</td><td>Currently running processes</td><td>Live kernel data</td></tr>
+    <tr><td>Windows.EventLogs.EvtxHunter</td><td>Event ID 4688 process creation</td><td>Security.evtx</td></tr>
+    <tr><td>Windows.Forensics.UserHive</td><td>NTUSER.DAT recent docs and MRUs</td><td>Per-user NTUSER.DAT</td></tr>
+  </table></div>
+</div>
+<div id="ft3" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Event ID</th><th>Channel</th><th>Meaning</th></tr>
+    <tr><td><strong>4624</strong></td><td>Security</td><td>Successful logon — note LogonType for lateral movement</td></tr>
+    <tr><td><strong>4625</strong></td><td>Security</td><td>Failed logon — brute force indicator</td></tr>
+    <tr><td><strong>4648</strong></td><td>Security</td><td>Explicit credential logon (RunAs, PTH)</td></tr>
+    <tr><td><strong>4688</strong></td><td>Security</td><td>Process creation (enable cmdline auditing for full value)</td></tr>
+    <tr><td><strong>4698</strong></td><td>Security</td><td>Scheduled task created — common persistence mechanism</td></tr>
+    <tr><td><strong>4720</strong></td><td>Security</td><td>User account created</td></tr>
+    <tr><td><strong>4732</strong></td><td>Security</td><td>Member added to security-enabled local group</td></tr>
+    <tr><td><strong>7045</strong></td><td>System</td><td>New service installed — persistence/lateral movement</td></tr>
+    <tr><td><strong>4103/4104</strong></td><td>PowerShell</td><td>Script block logging — captures deobfuscated PS code</td></tr>
+    <tr><td><strong>1102</strong></td><td>Security</td><td>Audit log cleared — possible evidence destruction</td></tr>
+    <tr><td><strong>4776</strong></td><td>Security</td><td>NTLM authentication — source of credential relay</td></tr>
+    <tr><td><strong>5140</strong></td><td>Security</td><td>Network share accessed — lateral movement evidence</td></tr>
+  </table></div>
+</div>
+<div id="ft4" class="sp">
+  <ul class="vl" style="margin-bottom:12px">
+    <li>Enumerate process handles, loaded modules, and memory regions via VQL plugins</li>
+    <li>Scan process memory with <code>yara(pid=PID)</code> for beacon and shellcode signatures</li>
+    <li>Detect process hollowing and injection via VAD (Virtual Address Descriptor) flags</li>
+    <li>ETW (Event Tracing for Windows) for kernel-level process, file, and network events</li>
+    <li>Monitor DNS queries, registry writes, file opens in real time via ETW artifacts</li>
+    <li>Use <code>Windows.Memory.ProcessInfo</code> for full module enumeration per process</li>
+  </ul>
+  <div class="cb"><span class="cmt">-- Scan all running processes for Cobalt Strike patterns</span>
+<span class="kw">LET</span> YaraRule = <span class="str">'''rule CSBeacon { strings: $x = { FC 48 83 E4 F0 } condition: $x }'''</span>
+
+<span class="kw">SELECT</span> Pid, Name, Rule <span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>() },
+  query={ <span class="kw">SELECT</span> Pid, Name, Rule <span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, pid=Pid) }
+)</div>
+</div>
+<div id="ft5" class="sp">
+  <div class="banner"><strong>Dead-disk analysis</strong> runs any CLIENT artifact against a raw disk image (E01, DD, VMDK) using filesystem remapping — no separate tooling needed.</div>
+  <div class="cb"><span class="cmt"># Attach Velociraptor to a disk image</span>
+<span class="fn">velociraptor</span> --config client.config.yaml deaddisk \
+  --image /evidence/suspect_drive.E01
+
+<span class="cmt"># Or build a remapping config and collect artifacts against it</span>
+<span class="fn">velociraptor</span> --config deaddisk.yaml artifacts collect \
+  Windows.Forensics.Prefetch \
+  Windows.Forensics.Amcache \
+  Windows.EventLogs.EvtxHunter</div>
+  <div class="p">Once remapped, all CLIENT artifacts transparently redirect their filesystem calls to the image. This gives you MFT, event logs, Prefetch, registry, and everything else from the offline image — using the exact same workflow as live endpoint analysis.</div>
+</div>`;}
+
+function paneMonitoring(){return`
+<div class="banner"><strong>CLIENT_EVENT artifacts</strong> run continuously on enrolled endpoints and stream events to the server as they occur. They persist until explicitly removed or updated.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◉</span> Core Monitoring Artifacts</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Artifact</th><th>Detects</th></tr>
+      <tr><td>Windows.Events.ProcessCreation</td><td>Every new process + full command line</td></tr>
+      <tr><td>Windows.Events.ServiceCreation</td><td>New Windows services (persistence)</td></tr>
+      <tr><td>Windows.Events.DNSQueries</td><td>DNS lookups via ETW (no network tap needed)</td></tr>
+      <tr><td>Windows.Events.NetworkSummary</td><td>New outbound connections</td></tr>
+      <tr><td>Windows.Events.ScheduledTasks</td><td>Task creation, modification, deletion</td></tr>
+      <tr><td>Windows.Sigma.Base</td><td>Sigma rule matches on streaming event logs</td></tr>
+      <tr><td>Linux.Events.Execve</td><td>Process execution via eBPF or audit daemon</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">▲</span> Server-Side Alerting (SERVER_EVENT)</div>
+    <div class="p">Watch incoming client event streams and trigger automated actions:</div>
+    <div class="cb" style="font-size:11px"><span class="kw">LET</span> hits = <span class="kw">SELECT</span> * <span class="kw">FROM</span>
+  <span class="fn">watch_monitoring</span>(
+    artifact=<span class="str">'Windows.Events.ProcessCreation'</span>)
+  <span class="kw">WHERE</span> CommandLine <span class="kw">=~</span> <span class="str">"mimikatz|lsass|sekurlsa"</span>
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">foreach</span>(row=hits,
+  query={ <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">http_client</span>(
+    url=SlackWebhookURL,
+    data=dict(text=format(
+      format=<span class="str">"ALERT: %v on %v"</span>,
+      args=[CommandLine, ClientId]))
+  )}
+)</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-b">⚙</span> Enabling Monitoring on a Client</div>
+  <div class="flow" style="margin-bottom:0">
+    <div class="step"><span class="step-n" style="font-size:10px">GUI</span><span class="step-l">Open client</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Tab</span><span class="step-l">Client Events</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">+</span><span class="step-l">Add artifact</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Params</span><span class="step-l">Configure</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Save</span><span class="step-l">Apply to client</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Live</span><span class="step-l">Events stream</span></div>
+  </div>
+</div>`;}
+
+function paneOffline(){return`
+<div class="banner"><strong>Offline collectors</strong> are pre-built Velociraptor binaries that collect artifacts locally to a ZIP file — no server connection required at collection time.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◆</span> Use Cases</div>
+    <ul class="vl">
+      <li>Air-gapped or network-isolated environments</li>
+      <li>Partner or vendor-managed devices</li>
+      <li>Volatile cloud instances (pre-termination triage)</li>
+      <li>Devices under legal hold — no persistent agent</li>
+      <li>Rapid first-responder deployment — run and hand off</li>
+      <li>Evidence collection without network exposure</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">▲</span> Output Options</div>
+    <ul class="vl">
+      <li>Local ZIP file (default)</li>
+      <li>Password-encrypted ZIP</li>
+      <li>GPG-encrypted output for chain-of-custody</li>
+      <li>Auto-upload to AWS S3 on completion</li>
+      <li>Auto-upload to Google Cloud Storage</li>
+      <li>SFTP upload to IR infrastructure</li>
+    </ul>
+  </div>
+</div>
+<div class="h2">Building an Offline Collector (GUI)</div>
+<div class="flow">
+  <div class="step"><span class="step-n">1</span><span class="step-l">Server Artifacts</span></div>
+  <div class="step"><span class="step-n">2</span><span class="step-l">Server.Utils.CreateCollector</span></div>
+  <div class="step"><span class="step-n">3</span><span class="step-l">Select artifacts</span></div>
+  <div class="step"><span class="step-n">4</span><span class="step-l">Set output / encryption</span></div>
+  <div class="step"><span class="step-n">5</span><span class="step-l">Launch → Download binary</span></div>
+  <div class="step"><span class="step-n">6</span><span class="step-l">Run on target</span></div>
+</div>
+<div class="h2">Importing Results Back to Server</div>
+<div class="cb"><span class="cmt"># Import a collected ZIP — client_id is optional, creates synthetic client</span>
+<span class="fn">velociraptor</span> --config server.config.yaml \
+  import --client_id C.abc123 offline_collection.zip
+
+<span class="cmt"># Or drag-and-drop in GUI: Server Artifacts → Import Hunt → Upload ZIP</span></div>
+<div class="p">After import the collection appears exactly like a live client result — all GUI analysis, Notebooks, and post-processing apply with no workflow changes.</div>`;}
+
+function paneNotebooks(){return`
+<div class="banner"><strong>Notebooks</strong> are built-in interactive investigation environments combining VQL query cells with Markdown documentation cells. They create living, shareable investigation records.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◉</span> Features</div>
+    <ul class="vl">
+      <li>Mix VQL cells and Markdown cells freely</li>
+      <li>Results render as interactive sortable tables</li>
+      <li>Timeline visualization for event data</li>
+      <li>Charts and graphs from VQL aggregation results</li>
+      <li>Attach to hunts, collections, or server-global scope</li>
+      <li>Share read-only or edit-enabled with teammates</li>
+      <li>Export as HTML for report delivery</li>
+      <li>Iterative refinement — no page reload needed</li>
+      <li>Stacked cell execution with prior results in scope</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">▤</span> Investigation Cell Flow</div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-md-hdr">Markdown</div><div class="nb-cell-body" style="color:var(--muted);font-size:11px"><em>## Investigation Scope</em><br>Investigating lateral movement from WIN-WS042 beginning 2025-03-24 08:00 UTC...</div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT * FROM hunt_results(hunt_id='H.abc') WHERE ClientId = 'C.xyz'</code></div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT TimeCreated, User, SourceIP FROM parse_evtx(...) WHERE EventID = 4624</code></div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-md-hdr">Markdown</div><div class="nb-cell-body" style="color:var(--muted);font-size:11px"><em>## Findings</em><br>Attacker logged in from 185.220.101.x at 09:23 UTC using stolen credentials...</div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT Pid, Name FROM pslist() WHERE CreateTime > '2025-03-24T09:23:00Z'</code></div></div>
+  </div>
+</div>`;}
+
+function paneAPI(){return`
+<div class="banner"><strong>Velociraptor exposes a gRPC API</strong> enabling full automation: trigger collections, stream results, manage clients, and integrate with SIEM/SOAR platforms programmatically.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">⇄</span> API Use Cases</div>
+    <ul class="vl">
+      <li>Auto-enrich SIEM alerts by triggering targeted collections</li>
+      <li>Feed hunt results into Splunk / Elastic in real time</li>
+      <li>Automate quarantine on confirmed-compromised hosts</li>
+      <li>Schedule periodic baseline collections</li>
+      <li>Build custom investigation portals on the API</li>
+      <li>CI/CD pipeline security scanning</li>
+      <li>SOAR playbook integration (Splunk SOAR, Cortex XSOAR)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">★</span> pyvelociraptor Quick Start</div>
+    <div class="cb" style="font-size:11px"><span class="cmt"># Install the Python client library</span>
+pip install pyvelociraptor
+
+<span class="cmt"># Use an API config generated from the server</span>
+<span class="fn">velociraptor</span> --config server.config.yaml \
+  config api_client --name myapp api.config.yaml</div>
+  </div>
+</div>
+<div class="h3">Trigger a Collection via API (Python)</div>
+<div class="cb"><span class="cmt">import</span> pyvelociraptor
+<span class="cmt">import</span> api_pb2, api_pb2_grpc
+
+config = pyvelociraptor.LoadConfigFile(<span class="str">"api.config.yaml"</span>)
+creds = pyvelociraptor.GrpcCreds(config)
+stub = api_pb2_grpc.APIStub(creds)
+
+<span class="cmt"># Schedule an artifact collection on a specific client</span>
+response = stub.CollectArtifact(api_pb2.CollectArtifactRequest(
+  client_id=<span class="str">"C.abc123"</span>,
+  artifacts=[api_pb2.Artifact(name=<span class="str">"Windows.System.Pslist"</span>)],
+), timeout=<span class="str">60</span>)
+
+print(f<span class="str">"Flow ID: {response.flow_id}"</span>)</div>
+<div class="h3">Stream Hunt Results via API</div>
+<div class="cb"><span class="cmt"># Stream all rows from a completed hunt to stdout as JSON</span>
+<span class="fn">velociraptor</span> --config server.config.yaml query <span class="str">"
+SELECT * FROM hunt_results(
+  hunt_id='H.abc123',
+  artifact='Windows.Forensics.Prefetch'
+)"</span> --format jsonl</div>
+<div class="h3">ACL Roles Reference</div>
+<div class="tbl-wrap"><table class="vt">
+  <tr><th>Role</th><th>Permissions Summary</th></tr>
+  <tr><td><span class="badge badge-ok">administrator</span></td><td>Full access: manage users, config, all operations</td></tr>
+  <tr><td><span class="badge badge-info">investigator</span></td><td>Collect artifacts, run hunts, use VFS, view all results</td></tr>
+  <tr><td><span class="badge badge-warn">analyst</span></td><td>Read collections and results, run notebooks — no new collections</td></tr>
+  <tr><td><span class="badge badge-orange">api</span></td><td>API access only — no GUI login possible</td></tr>
+  <tr><td><span class="badge badge-info">reader</span></td><td>Read-only access to all collections and results</td></tr>
+</table></div>`;}
+
+function paneReference(){return`
+<div id="ref-tabs" class="tab-bar">
+  <button class="tab active" data-target="rt1">CLI Commands</button>
+  <button class="tab" data-target="rt2">Top Artifacts</button>
+  <button class="tab" data-target="rt3">Resources</button>
+</div>
+<div id="rt1" class="sp active">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td><code>velociraptor gui</code></td><td>Instant all-in-one GUI on localhost (testing)</td></tr>
+    <tr><td><code>velociraptor config generate -i</code></td><td>Interactive wizard to generate server config</td></tr>
+    <tr><td><code>velociraptor frontend -v</code></td><td>Start the production frontend server (verbose)</td></tr>
+    <tr><td><code>velociraptor query "&lt;VQL&gt;"</code></td><td>Run a VQL query against the local system</td></tr>
+    <tr><td><code>velociraptor artifacts list</code></td><td>List all available artifact names</td></tr>
+    <tr><td><code>velociraptor artifacts collect &lt;name&gt;</code></td><td>Collect a specific artifact from localhost</td></tr>
+    <tr><td><code>velociraptor user add &lt;user&gt; --role &lt;r&gt;</code></td><td>Create a GUI user with a specified role</td></tr>
+    <tr><td><code>velociraptor service install</code></td><td>Install Velociraptor as a system service</td></tr>
+    <tr><td><code>velociraptor service remove</code></td><td>Uninstall the system service</td></tr>
+    <tr><td><code>velociraptor import --client_id C zip</code></td><td>Import an offline collection ZIP to the server</td></tr>
+    <tr><td><code>velociraptor deaddisk --image file.E01</code></td><td>Analyze a raw disk image with VQL artifacts</td></tr>
+    <tr><td><code>velociraptor config show</code></td><td>Print the current configuration (redacted)</td></tr>
+    <tr><td><code>velociraptor config api_client --name app out.yaml</code></td><td>Generate an API client config for a named app</td></tr>
+    <tr><td><code>velociraptor acl grant &lt;user&gt; --role &lt;r&gt;</code></td><td>Grant an ACL role to a user</td></tr>
+    <tr><td><code>velociraptor fs ls /</code></td><td>Browse the VFS of the local system via CLI</td></tr>
+  </table></div>
+</div>
+<div id="rt2" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Artifact Name</th><th>Purpose</th></tr>
+    <tr><td>Windows.System.Pslist</td><td>Running processes with full metadata</td></tr>
+    <tr><td>Windows.Network.Netstat</td><td>Network connections and listening ports</td></tr>
+    <tr><td>Windows.Sys.StartupItems</td><td>Registry-based startup persistence</td></tr>
+    <tr><td>Windows.System.Services</td><td>Installed Windows services</td></tr>
+    <tr><td>Windows.System.ScheduledTasks</td><td>Scheduled task details</td></tr>
+    <tr><td>Windows.Forensics.Prefetch</td><td>Application execution history</td></tr>
+    <tr><td>Windows.Forensics.Amcache</td><td>Recently executed software and SHA1 hashes</td></tr>
+    <tr><td>Windows.Forensics.ShimCache</td><td>AppCompatCache execution evidence</td></tr>
+    <tr><td>Windows.Forensics.SRUM</td><td>Historical process and network usage</td></tr>
+    <tr><td>Windows.EventLogs.EvtxHunter</td><td>Flexible search across all event log channels</td></tr>
+    <tr><td>Generic.Forensics.SQLiteHunter</td><td>Browser history, cookies, and SQLite databases</td></tr>
+    <tr><td>Generic.Detection.Yara</td><td>YARA scan with custom rules</td></tr>
+    <tr><td>Windows.Sigma.Base</td><td>Sigma rule-based detection on event logs</td></tr>
+    <tr><td>Linux.Sys.Pslist</td><td>Running processes on Linux</td></tr>
+    <tr><td>Linux.Sys.LastLogon</td><td>Recent login history on Linux</td></tr>
+    <tr><td>Server.Utils.CreateCollector</td><td>Build a standalone offline collector binary</td></tr>
+  </table></div>
+</div>
+<div id="rt3" class="sp">
+  <div class="g2">
+    <div class="card" style="border-left:3px solid var(--teal)">
+      <div class="card-title">Official Documentation</div>
+      <ul class="vl">
+        <li><a href="https://docs.velociraptor.app" target="_blank" style="color:var(--teal)">docs.velociraptor.app</a> — full documentation</li>
+        <li><a href="https://training.velociraptor.app" target="_blank" style="color:var(--teal)">training.velociraptor.app</a> — training slides</li>
+        <li><a href="https://docs.velociraptor.app/exchange/" target="_blank" style="color:var(--teal)">Artifact Exchange</a> — community artifacts</li>
+        <li><a href="https://docs.velociraptor.app/vql_reference/" target="_blank" style="color:var(--teal)">VQL Reference</a> — all plugins and functions</li>
+        <li><a href="https://github.com/Velocidex/velociraptor" target="_blank" style="color:var(--teal)">GitHub</a> — source code and releases</li>
+      </ul>
+    </div>
+    <div class="card" style="border-left:3px solid var(--orange)">
+      <div class="card-title">Community & Training</div>
+      <ul class="vl">
+        <li><a href="https://docs.velociraptor.app/discord/" target="_blank" style="color:var(--orange)">Discord</a> — active community chat</li>
+        <li><a href="https://www.youtube.com/playlist?list=PLz4xB83Y3Vbjtqr_ttOkBWZZ_ewEVVPXQ" target="_blank" style="color:var(--orange)">YouTube playlist</a> — training videos</li>
+        <li><a href="https://github.com/Velocidex/velociraptor/discussions" target="_blank" style="color:var(--orange)">GitHub Discussions</a></li>
+        <li>velociraptor-discuss mailing list</li>
+        <li>VeloCON annual community conference</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">i</span> Official Training Course (7 Sessions)</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>#</th><th>Session Topic</th></tr>
+      <tr><td>1</td><td>Introduction — architecture, deployment modes, quick start</td></tr>
+      <tr><td>2</td><td>VQL Fundamentals — syntax, plugins, functions, scope</td></tr>
+      <tr><td>3</td><td>Artifacts — writing, parameterizing, types, and management</td></tr>
+      <tr><td>4</td><td>Hunting — fleet-wide hunts, targeting, result analysis</td></tr>
+      <tr><td>5</td><td>Forensic Analysis — filesystem, NTFS, event logs, execution evidence</td></tr>
+      <tr><td>6</td><td>Monitoring and Detection — CLIENT_EVENT, YARA, Sigma, ETW</td></tr>
+      <tr><td>7</td><td>Advanced — API automation, dead-disk analysis, notebooks, offline collectors</td></tr>
+    </table></div>
+  </div>
+</div>`;}
+
+/* ── Render functions ── */
+const PANES = {overview:paneOverview,quickstart:paneQuickstart,architecture:paneArchitecture,vql:paneVQL,artifacts:paneArtifacts,clients:paneClients,hunting:paneHunting,forensics:paneForensics,monitoring:paneMonitoring,offline:paneOffline,notebooks:paneNotebooks,api:paneAPI,reference:paneReference};
+
+function goTo(id){
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.toggle('active',el.dataset.id===id));
+  document.getElementById('tbTitle').textContent = TITLES[id]||id;
+  document.getElementById('tbSub').textContent = SUBS[id]||'';
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="pane active">${(PANES[id]||(() => '<p class="p">Coming soon.</p>'))()}</div>`;
+  c.scrollTop = 0;
+  // Bind tabs
+  c.querySelectorAll('.tab-bar button.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const bar = tab.closest('.tab-bar');
+      bar.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.target;
+      const pane = c.querySelector('.pane.active');
+      pane.querySelectorAll('.sp').forEach(sp=>sp.classList.toggle('active',sp.id===target));
+    });
+  });
+  if(id==='artifacts') setTimeout(renderArtGrid,0);
+}
+
+function renderArtGrid(cat='all'){
+  const g = document.getElementById('artGrid');
+  if(!g)return;
+  const filtered = cat==='all' ? ARTS : ARTS.filter(a=>a.c===cat);
+  g.innerHTML = filtered.map(a=>`
+    <div class="art-card">
+      <div class="art-name">${a.n}</div>
+      <div class="art-desc">${a.d}</div>
+      <div>${a.t.map(t=>`<span class="pill p-t">${t}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+window.filterArts = function(cat,btn){
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b===btn));
+  renderArtGrid(cat);
+};
+
+window.runVQL = function(btn,id){
+  const r = document.getElementById(id);
+  if(r){r.classList.add('shown');btn.textContent='✓ Done';btn.classList.add('done');}
+};
+
+window.toggleAcc = function(h){
+  const body = h.nextElementSibling;
+  const arr = h.querySelector('.acc-arr');
+  body.classList.toggle('open');
+  if(arr) arr.style.transform = body.classList.contains('open') ? 'rotate(90deg)' : '';
+};
+
+/* ── Build sidebar ── */
+function buildNav(){
+  const sb = document.getElementById('sbNav');
+  sb.innerHTML = NAV.map(item=>`
+    ${item.section ? `<div class="sb-section">${item.section}</div>` : ''}
+    <div class="sb-item${item.id==='overview'?' active':''}" data-id="${item.id}" onclick="goTo('${item.id}')">
+      <span class="sb-icon">${item.icon}</span>
+      <span class="sb-label">${item.label}</span>
+    </div>`).join('');
+}
+
+/* ── Theme toggle ── */
+function applyTheme(){
+  document.documentElement.classList.toggle('dark',isDark);
+  document.body.classList.toggle('dark',isDark);
+  document.getElementById('themeBtn').textContent = isDark ? '☽ Dark' : '☀ Light';
+}
+
+document.getElementById('themeBtn').onclick = ()=>{isDark=!isDark;applyTheme();};
+
+/* ── Sidebar collapse ── */
+document.getElementById('collapseBtn').onclick = ()=>{
+  sidebarCollapsed=!sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed',sidebarCollapsed);
+  document.getElementById('collapseBtn').textContent = sidebarCollapsed ? '›' : '‹';
+};
+
+/* ── Copy code blocks ── */
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('copy-btn')){
+    const cb = e.target.closest('.cb');
+    const text = cb ? cb.innerText.replace('Copy','').trim() : '';
+    navigator.clipboard.writeText(text).then(()=>{
+      e.target.textContent='✓';
+      setTimeout(()=>e.target.textContent='Copy',1500);
+    });
+  }
+});
+
+/* ── Init ── */
+applyTheme();
+buildNav();
+goTo('overview');
+</script>
+</body>
+</html>

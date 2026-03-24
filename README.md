@@ -90,16 +90,6 @@ git commit -m "Add: section on XYZ"
 git push origin feature/my-section
 # open a PR
 ```
-
----
-
-## Deploying to GitHub Pages
-
-1. Push this repo to GitHub
-2. Go to **Settings → Pages**
-3. Source: **Deploy from a branch** → `main` → `/ (root)`
-4. Your guide will be live at `https://YOUR_USERNAME.github.io/velociraptor-guide/`
-
 ---
 
 ## License

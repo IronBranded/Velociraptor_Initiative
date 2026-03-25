@@ -12,16 +12,13 @@
 
 Open `index.html` in any modern browser — no server, no build step, no dependencies.
 
-```bash
-git clone https://github.com/YOUR_USERNAME/velociraptor-guide.git
-cd velociraptor-guide
-open index.html          # macOS
-xdg-open index.html      # Linux
-start index.html         # Windows
-```
+<h3 align="center">
+  <a href="https://github.com/IronBranded/Velociraptor_Initiative/" target="_blank" rel="noopener noreferrer">
+    🟢 TRY THE GUIDE🟢
+  </a>
+</h3>
 
-Or host it on GitHub Pages by enabling Pages for the `main` branch root.
-
+---
 ---
 
 ## What's Inside

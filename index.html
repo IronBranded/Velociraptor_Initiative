@@ -19,6 +19,7 @@
   --ok:#1e8a5a;--warn:#c06000;--heading:#1a1d2e;
   --accent-bg:#fff8ee;--scrollbar:#d0d3e0;
   --sb-text:#b8bdd4;--sb-active:#fff;--sb-section:rgba(255,255,255,.3);
+  --red:#c04040;--blue:#3a7fd4;
   font-size:13px;
 }
 .dark{
@@ -94,6 +95,7 @@ body{background:var(--bg);color:var(--text);transition:background .2s,color .2s}
 .ct-b{background:rgba(26,83,200,.18);color:#4a8fff}
 .ct-r{background:rgba(200,40,40,.18);color:#c04040}
 .ct-g{background:rgba(26,171,60,.18);color:#1aab3c}
+.ct-p{background:rgba(130,50,200,.18);color:#9b59e8}
 
 /* ── Grids ───────────────────────────────────────── */
 .g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:14px}
@@ -125,8 +127,9 @@ code{font-family:Consolas,'Courier New',monospace;font-size:11px;background:var(
 .fn{color:var(--teal)}
 .str{color:#5c9}
 .cmt{color:var(--muted);font-style:italic}
-.copy-btn{position:absolute;top:6px;right:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-family:inherit;transition:all .15s}
-.copy-btn:hover{background:rgba(255,255,255,.18);color:#fff}
+.copy-btn{position:absolute;top:6px;right:8px;background:rgba(128,128,128,.15);border:1px solid rgba(128,128,128,.25);color:var(--muted);border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;font-family:inherit;transition:all .15s;z-index:2}
+.copy-btn:hover{background:var(--orange);border-color:var(--orange);color:#fff}
+.copy-btn.copied{background:var(--teal);border-color:var(--teal);color:#fff}
 
 /* ── Pills / Tags ────────────────────────────────── */
 .pill{display:inline-flex;align-items:center;border-radius:4px;font-size:10px;font-weight:600;padding:2px 7px;margin:2px}
@@ -135,10 +138,15 @@ code{font-family:Consolas,'Courier New',monospace;font-size:11px;background:var(
 .p-b{background:rgba(26,83,200,.11);color:#3a7fd4}
 .p-r{background:rgba(200,40,40,.11);color:#c04040}
 .p-g{background:rgba(26,171,60,.1);color:#1aab3c}
+.p-p{background:rgba(130,50,200,.1);color:#9b59e8}
 
 /* ── Info Banner ─────────────────────────────────── */
 .banner{background:var(--accent-bg);border-left:3px solid var(--orange);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.6}
 .banner strong{color:var(--orange)}
+.banner-teal{background:rgba(26,171,138,.08);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.6}
+.banner-teal strong{color:var(--teal)}
+.banner-red{background:rgba(200,40,40,.07);border-left:3px solid #c04040;border-radius:0 6px 6px 0;padding:10px 14px;font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.6}
+.banner-red strong{color:#c04040}
 
 /* ── Tabs ────────────────────────────────────────── */
 .tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;gap:2px;overflow-x:auto;flex-shrink:0}
@@ -195,6 +203,52 @@ code{font-family:Consolas,'Courier New',monospace;font-size:11px;background:var(
 .c-name{font-weight:600;color:var(--heading);flex:1}
 .c-meta{color:var(--muted);font-size:11px}
 
+/* ── DFIR Fundamentals specific styles ──────────── */
+.artifact-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;transition:background .2s}
+.artifact-card:hover{border-color:var(--orange);box-shadow:0 2px 10px rgba(232,131,10,.08)}
+.artifact-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.artifact-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.artifact-name-block{flex:1}
+.artifact-title{font-weight:700;font-size:13px;color:var(--heading);font-family:Consolas,monospace}
+.artifact-subtitle{font-size:10px;color:var(--muted);margin-top:1px}
+.artifact-body{font-size:12px;color:var(--text);line-height:1.65}
+.artifact-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+
+.evidence-box{background:var(--row1);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin:6px 0}
+.evidence-label{font-size:10px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.evidence-value{font-size:12px;color:var(--text);line-height:1.6}
+
+.proc-tree{font-family:Consolas,monospace;font-size:11px;background:var(--code-bg);border:1px solid var(--code-border);border-radius:6px;padding:10px 14px;line-height:2;color:var(--code-text)}
+.proc-normal{color:var(--teal)}
+.proc-warn{color:var(--warn);font-weight:600}
+.proc-bad{color:#c04040;font-weight:700}
+.proc-indent{color:var(--muted)}
+
+.timeline-item{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.timeline-item:last-child{border-bottom:none}
+.tl-time{font-family:Consolas,monospace;font-size:11px;color:var(--muted);white-space:nowrap;min-width:80px}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.tl-content{flex:1;font-size:12px;color:var(--text);line-height:1.5}
+.tl-event{font-weight:600;color:var(--heading)}
+.tl-detail{font-size:11px;color:var(--muted);margin-top:2px}
+
+.lifecycle-phase{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;position:relative;overflow:hidden}
+.lifecycle-phase::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.lp-prep::before{background:#4a8fff}
+.lp-id::before{background:var(--orange)}
+.lp-contain::before{background:#c04040}
+.lp-erad::before{background:#9b59e8}
+.lp-recover::before{background:var(--teal)}
+.lp-lessons::before{background:#1aab3c}
+.lp-title{font-weight:700;font-size:12px;margin-bottom:4px}
+.lp-velo{font-size:10px;color:var(--teal);font-weight:600;margin-top:6px}
+
+.insight-box{background:rgba(232,131,10,.06);border:1px solid rgba(232,131,10,.2);border-radius:6px;padding:10px 12px;margin:8px 0}
+.insight-box .ib-label{font-size:10px;font-weight:700;color:var(--orange);text-transform:uppercase;margin-bottom:3px}
+.insight-box .ib-text{font-size:12px;color:var(--text);line-height:1.6}
+
+.forensic-value{display:inline-flex;align-items:center;gap:4px;background:rgba(26,171,138,.1);border:1px solid rgba(26,171,138,.2);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:600;color:var(--teal);margin:2px}
+
 /* ── Typography helpers ──────────────────────────── */
 .h2{font-size:14px;font-weight:600;color:var(--heading);margin:16px 0 8px}
 .h3{font-size:12px;font-weight:600;color:var(--orange);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.4px}
@@ -228,11 +282,36 @@ ul.vl li{margin-bottom:1px}
 .fbtn{background:var(--row1);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
 .fbtn:hover{border-color:var(--teal);color:var(--teal)}
 .fbtn.active{background:rgba(26,171,138,.12);border-color:var(--teal);color:var(--teal)}
+
+/* ── Global Search Overlay ───────────────────────── */
+#gsearch-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding-top:80px}
+#gsearch-overlay.open{display:flex}
+#gsearch-box{background:var(--card);border:1px solid var(--border);border-radius:10px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+#gsearch-input{width:100%;padding:14px 16px;background:transparent;border:none;font-size:14px;color:var(--text);font-family:inherit;outline:none}
+#gsearch-input::placeholder{color:var(--muted)}
+#gsearch-divider{height:1px;background:var(--border)}
+#gsearch-results{padding:8px;max-height:380px;overflow-y:auto}
+.gs-result{padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .12s}
+.gs-result:hover{background:var(--row1)}
+.gs-title{font-weight:600;font-size:12px;color:var(--heading)}
+.gs-match{font-size:11px;color:var(--muted);margin-top:1px}
+.gs-match em{color:var(--orange);font-style:normal;font-weight:600}
+.gs-section{font-size:10px;color:var(--teal);margin-bottom:3px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;padding:0 10px;margin-top:6px}
+.gs-empty{padding:20px;text-align:center;color:var(--muted);font-size:12px}
+.search-kbd{background:var(--row1);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-family:Consolas,monospace;color:var(--muted);margin-left:8px}
 </style>
 </head>
 <body>
-<div id="app">
+<!-- Global Search Overlay -->
+<div id="gsearch-overlay" onclick="closeSearch(event)">
+  <div id="gsearch-box">
+    <input id="gsearch-input" placeholder="Search across all sections, artifacts, VQL… (Esc to close)" autocomplete="off" oninput="doSearch(this.value)" onkeydown="searchKeyNav(event)">
+    <div id="gsearch-divider"></div>
+    <div id="gsearch-results"><div class="gs-empty">Start typing to search the guide…</div></div>
+  </div>
+</div>
 
+<div id="app">
 <!-- ── Sidebar ── -->
 <div id="sidebar">
   <div class="sb-logo">
@@ -260,6 +339,9 @@ ul.vl li{margin-bottom:1px}
       <span class="badge badge-ok">v0.73.x</span>
       <span class="badge badge-info">Open Source</span>
       <span class="badge badge-orange">AGPL v3</span>
+      <button onclick="openSearch()" style="background:var(--row1);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all .15s" onmouseover="this.style.borderColor='var(--teal)';this.style.color='var(--teal)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+        🔍 Search<span class="search-kbd">Ctrl+K</span>
+      </button>
       <a href="https://github.com/Velocidex/velociraptor" target="_blank" style="text-decoration:none"><span class="badge badge-warn">★ GitHub</span></a>
     </div>
   </div>
@@ -277,6 +359,7 @@ const NAV = [
   {id:'overview',label:'Overview',icon:'◎',section:'Platform'},
   {id:'quickstart',label:'Quick Start',icon:'▶'},
   {id:'architecture',label:'Architecture',icon:'⬡'},
+  {id:'dfirfundamentals',label:'DFIR Fundamentals',icon:'◆',section:'Knowledge Foundation'},
   {id:'vql',label:'VQL Language',icon:'⌗',section:'Core Concepts'},
   {id:'artifacts',label:'Artifacts',icon:'◈'},
   {id:'clients',label:'Client Management',icon:'◉',section:'Operations'},
@@ -289,8 +372,30 @@ const NAV = [
   {id:'reference',label:'Quick Reference',icon:'☰',section:'Reference'},
 ];
 
-const TITLES = {overview:'Overview',quickstart:'Quick Start',architecture:'Architecture',vql:'VQL Language',artifacts:'Artifacts',clients:'Client Management',hunting:'Hunts & Hunting',forensics:'Forensic Analysis',monitoring:'Live Monitoring',offline:'Offline Collectors',notebooks:'Notebooks',api:'Server API & Automation',reference:'Quick Reference'};
-const SUBS = {overview:'Platform capabilities, deployment modes, and key facts',quickstart:'Download, instant GUI, and first VQL query',architecture:'Components, security model, scaling, and data flow',vql:'Syntax, plugins, functions, accessors, and examples',artifacts:'YAML structure, types, catalog, and writing tips',clients:'Searching, labeling, collecting, and managing endpoints',hunting:'Fleet-wide artifact collection and IOC hunting workflow',forensics:'Filesystem, execution evidence, event logs, memory, dead disk',monitoring:'Real-time event streaming and automated server-side alerting',offline:'Air-gapped and standalone collection without a persistent agent',notebooks:'Interactive investigation environments built into the GUI',api:'gRPC API, pyvelociraptor, SOAR integration, and automation',reference:'CLI commands, artifact index, ACL roles, and external resources'};
+const TITLES = {
+  overview:'Overview',quickstart:'Quick Start',architecture:'Architecture',
+  dfirfundamentals:'DFIR Fundamentals',
+  vql:'VQL Language',artifacts:'Artifacts',clients:'Client Management',
+  hunting:'Hunts & Hunting',forensics:'Forensic Analysis',monitoring:'Live Monitoring',
+  offline:'Offline Collectors',notebooks:'Notebooks',api:'Server API & Automation',
+  reference:'Quick Reference'
+};
+const SUBS = {
+  overview:'Platform capabilities, deployment modes, and key facts',
+  quickstart:'Download, instant GUI, and first VQL query',
+  architecture:'Components, security model, scaling, and data flow',
+  dfirfundamentals:'Windows internals, artifact telemetry, PICERL lifecycle, and the "why" behind evidence',
+  vql:'Syntax, plugins, functions, accessors, and examples',
+  artifacts:'YAML structure, types, catalog, and writing tips',
+  clients:'Searching, labeling, collecting, and managing endpoints',
+  hunting:'Fleet-wide artifact collection and IOC hunting workflow',
+  forensics:'Filesystem, execution evidence, event logs, memory, dead disk',
+  monitoring:'Real-time event streaming and automated server-side alerting',
+  offline:'Air-gapped and standalone collection without a persistent agent',
+  notebooks:'Interactive investigation environments built into the GUI',
+  api:'gRPC API, pyvelociraptor, SOAR integration, and automation',
+  reference:'CLI commands, artifact index, ACL roles, and external resources'
+};
 
 /* ── Artifact catalog ── */
 const ARTS = [
@@ -317,6 +422,461 @@ const ARTS = [
   {n:'Generic.Forensics.SQLiteHunter',d:'Browser history, cookies, and SQLite DBs',t:['forensics','browser'],c:'forensics'},
   {n:'Server.Utils.CreateCollector',d:'Build a standalone offline collector binary',t:['server','utility'],c:'windows'},
 ];
+
+/* ═══════════════════════════════════════════════════════
+   DFIR FUNDAMENTALS PANE
+═══════════════════════════════════════════════════════ */
+function paneDFIRFundamentals(){return`
+<div id="fund-tabs" class="tab-bar">
+  <button class="tab active" data-target="ft-lifecycle">IR Lifecycle</button>
+  <button class="tab" data-target="ft-telemetry">Telemetry & Internals</button>
+  <button class="tab" data-target="ft-artifacts">Artifact Deep Dive</button>
+  <button class="tab" data-target="ft-processes">Normal vs Evil Processes</button>
+  <button class="tab" data-target="ft-lateral">Lateral Movement</button>
+  <button class="tab" data-target="ft-timestamps">Timestamps & MACB</button>
+</div>
+
+<!-- ── TAB 1: IR Lifecycle ── -->
+<div id="ft-lifecycle" class="sp active">
+  <div class="banner"><strong>The PICERL Framework</strong> — Every professional incident response follows a structured lifecycle. Velociraptor is not just a tool; it is the backbone of the <em>Identification</em>, <em>Containment</em>, and <em>Eradication</em> phases. Understanding where each phase fits prevents costly mistakes like wiping a drive before imaging it.</div>
+  
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:14px">
+    <div class="lifecycle-phase lp-prep">
+      <div class="lp-title" style="color:#4a8fff">① Preparation</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:4px">Build your IR capability before an incident. Deploy Velociraptor agents, create baseline artifacts, write detection content, train your team, and test your playbooks.</div>
+      <div class="lp-velo">Velociraptor: Pre-deploy agents · Build artifact library · Enable CLIENT_EVENT monitoring · Test offline collectors</div>
+    </div>
+    <div class="lifecycle-phase lp-id">
+      <div class="lp-title" style="color:var(--orange)">② Identification</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:4px">Detect and confirm an incident has occurred. Determine what systems are affected and establish an initial scope. Time is critical — gather volatile data first.</div>
+      <div class="lp-velo">Velociraptor: Triage hunts · pslist/netstat snapshots · Event log review · YARA hunting · Initial scoping hunt</div>
+    </div>
+    <div class="lifecycle-phase lp-contain">
+      <div class="lp-title" style="color:#c04040">③ Containment</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:4px">Stop the bleeding. Isolate affected hosts, disable compromised accounts, and block C2 channels — without destroying evidence. Short-term and long-term containment are distinct steps.</div>
+      <div class="lp-velo">Velociraptor: Network quarantine action · Kill process by PID · Disable scheduled tasks · Collect before wiping</div>
+    </div>
+    <div class="lifecycle-phase lp-erad">
+      <div class="lp-title" style="color:#9b59e8">④ Eradication</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:4px">Remove the threat: malware, backdoors, compromised accounts, and persistence mechanisms. Verify every affected system — attackers plant multiple footholds deliberately.</div>
+      <div class="lp-velo">Velociraptor: Persistence artifact hunts · Service/task scan · Registry run key audit · Lateral movement scope</div>
+    </div>
+    <div class="lifecycle-phase lp-recover">
+      <div class="lp-title" style="color:var(--teal)">⑤ Recovery</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:4px">Restore systems safely. Rebuild from known-good images or clean verified systems. Confirm no backdoors remain before returning to production. Monitor closely post-recovery.</div>
+      <div class="lp-velo">Velociraptor: Post-recovery baseline hunt · Continuous monitoring artifacts · Alerting on re-compromise indicators</div>
+    </div>
+    <div class="lifecycle-phase lp-lessons">
+      <div class="lp-title" style="color:#1aab3c">⑥ Lessons Learned</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:4px">Document the timeline, root cause, and gaps. Update detection rules and playbooks. This is where investigations become institutional knowledge and prevent recurrence.</div>
+      <div class="lp-velo">Velociraptor: Export Notebooks as HTML reports · Timeline data · Artifact results as evidence packages</div>
+    </div>
+  </div>
+
+  <div class="h2">Where Velociraptor Fits in the Kill Chain</div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-r">⚔</span> MITRE ATT&CK Phase → Velociraptor Evidence Source</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>ATT&CK Phase</th><th>What the Attacker Does</th><th>Velociraptor Evidence Source</th></tr>
+      <tr><td><span class="pill p-r">Initial Access</span></td><td>Exploit VPN, phishing, brute-force RDP</td><td>Event ID 4624/4625 · TerminalServices logs · Web server logs</td></tr>
+      <tr><td><span class="pill p-o">Execution</span></td><td>Run PowerShell, scripts, dropped binaries</td><td>Prefetch · Amcache · Event 4688 · PowerShell Script Block (4104)</td></tr>
+      <tr><td><span class="pill p-r">Persistence</span></td><td>Install service, scheduled task, registry run key</td><td>Windows.Sys.StartupItems · Services · ScheduledTasks · Event 7045/4698</td></tr>
+      <tr><td><span class="pill p-r">Privilege Escalation</span></td><td>Token impersonation, exploit local vuln</td><td>Event 4672 · Process creation chains · Token privileges in pslist</td></tr>
+      <tr><td><span class="pill p-o">Defense Evasion</span></td><td>Clear logs, timestomp, hide files in ADS</td><td>Event 1102 · $MFT / USN Journal · NTFS ADS accessor · ShimCache</td></tr>
+      <tr><td><span class="pill p-b">Credential Access</span></td><td>Dump LSASS, extract NTDS.dit, keylog</td><td>pslist for lsass children · YARA on process memory · Event 4663</td></tr>
+      <tr><td><span class="pill p-b">Lateral Movement</span></td><td>Pass-the-hash, RDP, PSExec, WMI</td><td>Event 4624 Type 3/10 · RDP operational logs · SRUM · BAM/DAM</td></tr>
+      <tr><td><span class="pill p-p">Collection / Exfil</span></td><td>Archive data, upload to cloud, C2 tunneling</td><td>SRUM network table · DNS query logs · netstat · LNK/JumpList artifacts</td></tr>
+      <tr><td><span class="pill p-r">Impact</span></td><td>Encrypt files (ransomware), delete backups</td><td>USN Journal (mass write activity) · VSS deletion events · SRUM</td></tr>
+    </table></div>
+  </div>
+
+  <div class="h2">The Golden Rule of DFIR: Order of Volatility</div>
+  <div class="banner-teal"><strong>Always collect the most volatile evidence first.</strong> Once a system is powered off, RAM is gone. Once a service restarts, process data changes. Once logs rotate, event history disappears. This order defines your collection priority.</div>
+  <div class="flow">
+    <div class="step"><span class="step-n" style="font-size:10px">1st</span><span class="step-l">CPU registers, cache</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">2nd</span><span class="step-l">RAM / process memory</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">3rd</span><span class="step-l">Network connections</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">4th</span><span class="step-l">Running processes</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">5th</span><span class="step-l">Open files / handles</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">6th</span><span class="step-l">Disk / filesystem</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">7th</span><span class="step-l">Remote / log servers</span></div>
+  </div>
+  <div class="p" style="margin-top:-8px">Velociraptor captures items 3–6 without rebooting. For item 2 (RAM), use WinPmem (created by the same Velocidex team) or Magnet DumpIt before any other action on a live compromised host.</div>
+</div>
+
+<!-- ── TAB 2: Telemetry & Windows Internals ── -->
+<div id="ft-telemetry" class="sp">
+  <div class="banner"><strong>Telemetry is the raw signal.</strong> Every artifact Velociraptor collects is a by-product of Windows doing its normal job. The OS creates these records for performance, compatibility, and auditing — not for forensics. Your job as an investigator is to read these "accidental" records and reconstruct what happened.</div>
+
+  <div class="h2">How Windows Generates Forensic Telemetry</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><span class="ct ct-o">⚡</span> The Prefetch Service</div>
+      <div class="p"><strong>Why it exists:</strong> Windows monitors the first 10 seconds of application launch and records which files and DLLs are loaded. It pre-fetches those into memory on next launch to improve startup speed.</div>
+      <div class="insight-box"><div class="ib-label">🔍 Forensic Value</div><div class="ib-text"><strong>Proof of execution with timestamps.</strong> Each .pf file in C:\Windows\Prefetch proves a specific binary ran on this system. The file contains: the binary path, last 8 execution times (Win8+), total execution count, and every file and directory the binary touched. Attackers who delete their malware still leave the .pf file behind unless they explicitly wipe Prefetch.</div></div>
+      <div class="evidence-box"><div class="evidence-label">Velociraptor Artifact</div><div class="evidence-value"><code>Windows.Forensics.Prefetch</code> — captures all .pf files and parses them. The <code>LastRunTimes</code> column is your execution timeline.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-t">📋</span> Application Compatibility Cache (ShimCache)</div>
+      <div class="p"><strong>Why it exists:</strong> When Windows runs an executable, it checks a compatibility database to see if any "shims" (patches) need to be applied for that binary to work correctly. Windows logs every executable it sees into this cache.</div>
+      <div class="insight-box"><div class="ib-label">🔍 Forensic Value</div><div class="ib-text"><strong>Proof a file existed on disk, possibly executed.</strong> ShimCache records the full path and last modification time of executables. Unlike Prefetch, it captures files that were <em>present</em> even if never run interactively. Critical for server forensics where Prefetch is often disabled.</div></div>
+      <div class="banner-red" style="margin-bottom:0;margin-top:8px"><strong>⚠ Caveat:</strong> Presence in ShimCache does NOT guarantee execution. A file can be shimmed without ever running. Correlate with Prefetch or Amcache for confirmation.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-b">🗄</span> Amcache.hve Registry Hive</div>
+      <div class="p"><strong>Why it exists:</strong> The Application Compatibility Infrastructure stores metadata about installed programs and executed binaries for compatibility telemetry and Windows Store management.</div>
+      <div class="insight-box"><div class="ib-label">🔍 Forensic Value</div><div class="ib-text"><strong>SHA1 hash of every executed binary.</strong> Amcache records the full path, publisher, file size, compilation time, and — crucially — the <strong>SHA1 hash</strong> of the executable. This lets you identify malware by hash even after the file is deleted, and submit it to VirusTotal for instant attribution.</div></div>
+      <div class="evidence-box"><div class="evidence-label">Velociraptor Artifact</div><div class="evidence-value"><code>Windows.Forensics.Amcache</code> — parse hashes with <code>SELECT SHA1, FullPath FROM ...</code> and cross-reference against threat intelligence.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-g">📊</span> System Resource Usage Monitor (SRUM)</div>
+      <div class="p"><strong>Why it exists:</strong> SRUM was introduced in Windows 8 to support the battery usage and data usage meters in Windows Settings. It records per-application resource consumption every hour.</div>
+      <div class="insight-box"><div class="ib-label">🔍 Forensic Value</div><div class="ib-text"><strong>30–60 days of historical execution and network activity.</strong> SRUM records which applications ran, under which user account, how much CPU and RAM they used, and how many bytes each sent/received per hour. This is your historical record even weeks after an incident — attackers cannot easily delete it.</div></div>
+      <div class="tbl-wrap" style="margin-top:8px"><table class="vt">
+        <tr><th>SRUM Table</th><th>Records</th></tr>
+        <tr><td><span class="forensic-value">Network Data Usage</span></td><td>Bytes sent/received per app per hour</td></tr>
+        <tr><td><span class="forensic-value">App Resource Usage</span></td><td>Process name, user SID, CPU time, memory</td></tr>
+        <tr><td><span class="forensic-value">Network Connectivity</span></td><td>Connected networks, timestamps, duration</td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-o">🕐</span> Background Activity Monitor (BAM/DAM)</div>
+      <div class="p"><strong>Why it exists:</strong> The Windows Background Activity Moderator tracks background application activity for the Windows power management subsystem (available Windows 10+).</div>
+      <div class="insight-box"><div class="ib-label">🔍 Forensic Value</div><div class="ib-text"><strong>Last execution time per binary per user.</strong> Stored in the SYSTEM registry hive under each user's SID. Unlike Prefetch (which can be disabled), BAM is nearly always present on Win10+ systems and provides the full path and <em>exact</em> last execution timestamp for each user.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-r">📝</span> Windows Event Logs (EVTX)</div>
+      <div class="p"><strong>Why it exists:</strong> Windows logging infrastructure records security, application, and system events for auditing, troubleshooting, and compliance. The Security log is particularly rich when audit policies are enabled.</div>
+      <div class="insight-box"><div class="ib-label">🔍 Forensic Value</div><div class="ib-text"><strong>Timestamped record of authentication, execution, and system changes.</strong> Event logs are the closest thing Windows has to a surveillance camera. Event 4624 records every successful logon with source IP, username, and logon type — a critical lateral movement indicator.</div></div>
+    </div>
+  </div>
+
+  <div class="h2">The NTFS Filesystem as Evidence</div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">💾</span> What NTFS Records That the OS Hides From You</div>
+    <div class="p">Standard Windows file browsing only shows you what the OS wants you to see. The NTFS filesystem contains far more. Velociraptor's <code>ntfs</code> accessor bypasses the OS entirely and reads the raw filesystem structures.</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>NTFS Structure</th><th>What It Contains</th><th>Why It Matters</th></tr>
+      <tr><td><code>$MFT</code></td><td>Master File Table — one entry per file/dir ever created</td><td>Records deleted files, timestamps, ADS. Attackers can delete a file but the MFT entry persists until overwritten.</td></tr>
+      <tr><td><code>$USN Journal</code></td><td>Change journal — every create/modify/delete/rename</td><td>Provides a chronological record of file activity. Ransomware shows up as thousands of rename events in rapid succession.</td></tr>
+      <tr><td><code>$LogFile</code></td><td>NTFS transaction log for crash recovery</td><td>Can reveal recent file operations not yet reflected in MFT metadata.</td></tr>
+      <tr><td>Alternate Data Streams</td><td>Additional data streams attached to a file</td><td>Zone.Identifier stream records download origin URL. Attackers hide payloads in ADS. Invisible to Explorer.</td></tr>
+    </table></div>
+    <div class="cb" style="margin-top:10px"><span class="cmt">-- Access raw NTFS to see hidden/locked files and Alternate Data Streams</span>
+<span class="kw">SELECT</span> FullPath, Size, Mtime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/**"</span>, accessor=<span class="str">"ntfs"</span>)
+<span class="kw">WHERE</span> FullPath <span class="kw">=~</span> <span class="str">":Zone.Identifier"</span>  <span class="cmt">-- files downloaded from the internet</span>
+<button class="copy-btn">Copy</button></div>
+  </div>
+</div>
+
+<!-- ── TAB 3: Artifact Deep Dive ── -->
+<div id="ft-artifacts" class="sp">
+  <div class="banner"><strong>Know your artifacts cold.</strong> The table below is your rapid-reference for every major Windows forensic artifact — what it proves, where it lives, and which Velociraptor artifact collects it. Based on the SANS FOR500/FOR508 Windows Forensic Analysis curriculum.</div>
+
+  <div class="h3">Evidence of Execution</div>
+  <div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+    <tr><th>Artifact</th><th>Location</th><th>What It Proves</th><th>Proves Execution?</th><th>Velociraptor</th></tr>
+    <tr>
+      <td><strong>Prefetch</strong></td>
+      <td><code>C:\Windows\Prefetch\*.pf</code></td>
+      <td>Binary ran, last 8 run times, run count, files touched during execution</td>
+      <td><span class="badge badge-ok">✓ Yes</span></td>
+      <td><code>Windows.Forensics.Prefetch</code></td>
+    </tr>
+    <tr>
+      <td><strong>Amcache.hve</strong></td>
+      <td><code>C:\Windows\AppCompat\Programs\Amcache.hve</code></td>
+      <td>SHA1 hash, full path, publisher, file size, compilation time. Best for hash-based IOC matching.</td>
+      <td><span class="badge badge-warn">◑ Likely</span></td>
+      <td><code>Windows.Forensics.Amcache</code></td>
+    </tr>
+    <tr>
+      <td><strong>ShimCache</strong></td>
+      <td><code>SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache</code></td>
+      <td>Binary was present on the filesystem and seen by Windows. Full path, last modified time.</td>
+      <td><span class="badge badge-warn">◑ Maybe</span></td>
+      <td><code>Windows.Forensics.ShimCache</code></td>
+    </tr>
+    <tr>
+      <td><strong>BAM/DAM</strong></td>
+      <td><code>SYSTEM\...\Services\bam\UserSettings\{SID}</code></td>
+      <td>Last execution time per binary per user SID. Win10+ only.</td>
+      <td><span class="badge badge-ok">✓ Yes</span></td>
+      <td><code>Windows.Forensics.Bam</code></td>
+    </tr>
+    <tr>
+      <td><strong>UserAssist</strong></td>
+      <td><code>NTUSER.DAT\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist</code></td>
+      <td>GUI program executions by user. ROT-13 encoded. Last run time, run count.</td>
+      <td><span class="badge badge-ok">✓ Yes</span></td>
+      <td>Raw registry VQL via <code>raw_reg</code> accessor</td>
+    </tr>
+    <tr>
+      <td><strong>SRUM</strong></td>
+      <td><code>C:\Windows\System32\sru\SRUDB.dat</code></td>
+      <td>Historical process execution, network bytes, user context. 30–60 days history.</td>
+      <td><span class="badge badge-ok">✓ Yes</span></td>
+      <td><code>Windows.Forensics.SRUM</code></td>
+    </tr>
+    <tr>
+      <td><strong>Event 4688</strong></td>
+      <td><code>Security.evtx</code></td>
+      <td>Process creation with parent PID and command line (requires audit policy enabled).</td>
+      <td><span class="badge badge-ok">✓ Yes</span></td>
+      <td><code>Windows.EventLogs.EvtxHunter</code> with EventID=4688</td>
+    </tr>
+    <tr>
+      <td><strong>PowerShell 4104</strong></td>
+      <td><code>Microsoft-Windows-PowerShell/Operational.evtx</code></td>
+      <td>Script block logging — captures fully deobfuscated PowerShell code as it executes.</td>
+      <td><span class="badge badge-ok">✓ Yes</span></td>
+      <td><code>Windows.EventLogs.EvtxHunter</code> with EventID=4104</td>
+    </tr>
+  </table></div>
+
+  <div class="h3">Evidence of Persistence</div>
+  <div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+    <tr><th>Mechanism</th><th>Location</th><th>Event Evidence</th><th>Velociraptor</th></tr>
+    <tr><td>Registry Run Keys</td><td><code>HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</code></td><td>Created silently. Look for unusual paths or encoded commands.</td><td><code>Windows.Sys.StartupItems</code></td></tr>
+    <tr><td>Scheduled Tasks</td><td><code>C:\Windows\System32\Tasks\</code> + XML definitions</td><td>Event 4698 (task created), 4702 (modified), 4699 (deleted)</td><td><code>Windows.System.ScheduledTasks</code></td></tr>
+    <tr><td>Windows Services</td><td><code>HKLM\SYSTEM\...\Services\</code> registry hive</td><td>Event 7045 (service installed) — one of the most reliable persistence events</td><td><code>Windows.System.Services</code></td></tr>
+    <tr><td>WMI Subscriptions</td><td>WMI repository: <code>C:\Windows\System32\wbem\Repository\</code></td><td>Fileless persistence. Executes on triggers. No files on disk.</td><td>WMI query via VQL <code>wmi()</code> plugin</td></tr>
+    <tr><td>DLL Hijacking</td><td>Application directories with writable DLL search paths</td><td>Process loading unexpected DLL path visible in Amcache/Prefetch</td><td>DLL path inspection via <code>glob()</code> + hash</td></tr>
+  </table></div>
+
+  <div class="h3">Evidence of Account & Authentication Activity</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Event ID</th><th>Log</th><th>Meaning & IR Value</th></tr>
+    <tr><td><strong>4624</strong></td><td>Security.evtx</td><td>Successful logon. Check <em>LogonType</em>: Type 3=Network (share/PSExec), Type 10=RemoteInteractive (RDP), Type 2=Interactive (console). Source IP reveals lateral movement origin.</td></tr>
+    <tr><td><strong>4625</strong></td><td>Security.evtx</td><td>Failed logon. High volume from same source = brute force. Different accounts = credential stuffing. Check SubStatus code for reason.</td></tr>
+    <tr><td><strong>4648</strong></td><td>Security.evtx</td><td>Logon with explicit credentials (RunAs, Pass-the-Hash). Logs both the source account and the target account used — critical for PtH detection.</td></tr>
+    <tr><td><strong>4672</strong></td><td>Security.evtx</td><td>Special privileges assigned to new logon. Indicates admin-level access. Follow every 4624 with a 4672 from same Logon ID.</td></tr>
+    <tr><td><strong>4776</strong></td><td>Security.evtx</td><td>NTLM authentication attempt. Source computer name tells you where credential relay originated.</td></tr>
+    <tr><td><strong>4698/7045</strong></td><td>Security/System.evtx</td><td>Scheduled task / service created. One of the highest-fidelity persistence detections. Correlate with the creating user's logon session.</td></tr>
+    <tr><td><strong>1102</strong></td><td>Security.evtx</td><td>Audit log cleared. Near-certain evidence of attacker anti-forensics. The <em>clearance time</em> becomes your lower bound for when the attacker had admin access.</td></tr>
+    <tr><td><strong>4103/4104</strong></td><td>PowerShell/Operational</td><td>Module logging / Script block logging. 4104 is gold — captures fully de-obfuscated PowerShell code. Enable via Group Policy: Computer Config → Admin Templates → Windows Components → Windows PowerShell.</td></tr>
+  </table></div>
+</div>
+
+<!-- ── TAB 4: Normal vs Evil Processes ── -->
+<div id="ft-processes" class="sp">
+  <div class="banner"><strong>Find Evil — Know Normal (SANS FOR508 methodology).</strong> Knowing exactly what a legitimate Windows process looks like — its parent, path, user context, and instance count — lets you immediately spot imposters, typosquatting, and process injection. This table is based on the SANS Hunt Evil poster by Rob Lee and Mike Pilkington.</div>
+
+  <div class="h3">The Windows Process Tree — What's Normal</div>
+  <div class="proc-tree">System (PID 4)
+  └─ <span class="proc-normal">smss.exe</span>               <span class="proc-indent">Session Manager · %SystemRoot%\System32\smss.exe · ONE instance · Parent: System</span>
+      ├─ <span class="proc-normal">csrss.exe</span>            <span class="proc-indent">Client/Server Runtime · ONE per session (0 and 1 minimum)</span>
+      └─ <span class="proc-normal">wininit.exe</span>          <span class="proc-indent">Windows Init · ONE instance · Session 0</span>
+          ├─ <span class="proc-normal">services.exe</span>     <span class="proc-indent">Service Control Manager · ONE instance · Parent: wininit.exe</span>
+          │   └─ <span class="proc-normal">svchost.exe</span>  <span class="proc-indent">Generic Service Host · MANY instances · Always has -k parameter</span>
+          ├─ <span class="proc-normal">lsass.exe</span>        <span class="proc-indent">Local Security Authority · ONE instance · No children (normally)</span>
+          └─ <span class="proc-normal">lsaiso.exe</span>       <span class="proc-indent">LSA Isolated (Credential Guard) · ZERO or ONE</span>
+
+<span class="proc-normal">winlogon.exe</span>                <span class="proc-indent">Interactive Logon Handler · ONE per session · Parent: smss.exe (exits)</span>
+  └─ <span class="proc-normal">explorer.exe</span>          <span class="proc-indent">Shell · ONE per logged-on user · %SystemRoot%\explorer.exe (NOT System32)</span></div>
+
+  <div class="h3">High-Value Process Anomalies to Hunt</div>
+  <div class="g2" style="margin-top:8px">
+    <div class="artifact-card" style="border-left:3px solid #c04040">
+      <div class="artifact-header">
+        <div class="artifact-icon" style="background:rgba(200,40,40,.1)">🚨</div>
+        <div class="artifact-name-block">
+          <div class="artifact-title">lsass.exe with child processes</div>
+          <div class="artifact-subtitle">Credential Dumping Indicator</div>
+        </div>
+      </div>
+      <div class="artifact-body">Legitimate lsass.exe almost never spawns child processes. If you see lsass.exe as a parent, <strong>immediately investigate</strong> — this is a near-certain indicator of credential dumping tools like Mimikatz or living-off-the-land LSASS access.
+      <div class="insight-box" style="margin-top:6px"><div class="ib-label">VQL Hunt</div><div class="ib-text"><code>SELECT * FROM pslist() WHERE Ppid IN (SELECT Pid FROM pslist() WHERE Name =~ "lsass")</code></div></div>
+      </div>
+    </div>
+    <div class="artifact-card" style="border-left:3px solid #c04040">
+      <div class="artifact-header">
+        <div class="artifact-icon" style="background:rgba(200,40,40,.1)">🚨</div>
+        <div class="artifact-name-block">
+          <div class="artifact-title">svchost.exe without -k parameter</div>
+          <div class="artifact-subtitle">Malware Masquerading</div>
+        </div>
+      </div>
+      <div class="artifact-body">Every legitimate svchost.exe has a <code>-k</code> flag in its command line identifying the service group (e.g., <code>-k netsvcs</code>, <code>-k LocalService</code>). A svchost.exe without <code>-k</code>, running from a non-standard path, or with an unusual parent is malware.
+      <div class="insight-box" style="margin-top:6px"><div class="ib-label">VQL Hunt</div><div class="ib-text"><code>SELECT * FROM pslist() WHERE Name =~ "svchost" AND NOT CommandLine =~ "-k"</code></div></div>
+      </div>
+    </div>
+    <div class="artifact-card" style="border-left:3px solid var(--warn)">
+      <div class="artifact-header">
+        <div class="artifact-icon" style="background:rgba(200,100,0,.1)">⚠</div>
+        <div class="artifact-name-block">
+          <div class="artifact-title">explorer.exe spawning cmd/powershell</div>
+          <div class="artifact-subtitle">User-Initiated Execution</div>
+        </div>
+      </div>
+      <div class="artifact-body">While not always malicious, explorer.exe directly spawning cmd.exe or powershell.exe with suspicious arguments is a major phishing/macro indicator. Legitimate software rarely does this directly from the shell.
+      <div class="insight-box" style="margin-top:6px"><div class="ib-label">VQL Hunt</div><div class="ib-text"><code>SELECT * FROM pslist() WHERE Ppid IN (SELECT Pid FROM pslist() WHERE Name =~ "explorer") AND Name =~ "cmd|powershell|wscript|cscript"</code></div></div>
+      </div>
+    </div>
+    <div class="artifact-card" style="border-left:3px solid var(--warn)">
+      <div class="artifact-header">
+        <div class="artifact-icon" style="background:rgba(200,100,0,.1)">⚠</div>
+        <div class="artifact-name-block">
+          <div class="artifact-title">Office apps spawning processes</div>
+          <div class="artifact-subtitle">Malicious Document / Macro Execution</div>
+        </div>
+      </div>
+      <div class="artifact-body">winword.exe, excel.exe, or powerpnt.exe spawning cmd.exe, powershell.exe, wscript.exe, or mshta.exe is a near-certain indicator of a malicious macro executing a payload.
+      <div class="insight-box" style="margin-top:6px"><div class="ib-label">VQL Hunt</div><div class="ib-text"><code>SELECT * FROM pslist() WHERE Ppid IN (SELECT Pid FROM pslist() WHERE Name =~ "winword|excel|powerpnt") AND Name =~ "cmd|powershell|wscript|mshta"</code></div></div>
+      </div>
+    </div>
+    <div class="artifact-card" style="border-left:3px solid #c04040">
+      <div class="artifact-header">
+        <div class="artifact-icon" style="background:rgba(200,40,40,.1)">🚨</div>
+        <div class="artifact-name-block">
+          <div class="artifact-title">Process running from unusual paths</div>
+          <div class="artifact-subtitle">Living-off-the-Land / Dropper</div>
+        </div>
+      </div>
+      <div class="artifact-body">Malware frequently runs from Temp folders, AppData, or the Recycle Bin. Legitimate Windows binaries live in System32, SysWOW64, or Program Files. Any system binary (cmd.exe, regsvr32.exe) running from a temp path is highly suspicious.
+      <div class="insight-box" style="margin-top:6px"><div class="ib-label">VQL Hunt</div><div class="ib-text"><code>SELECT * FROM pslist() WHERE Exe =~ "(?i)(temp|appdata|recycle|downloads)" AND NOT Name =~ "chrome|firefox|edge"</code></div></div>
+      </div>
+    </div>
+    <div class="artifact-card" style="border-left:3px solid var(--teal)">
+      <div class="artifact-header">
+        <div class="artifact-icon" style="background:rgba(26,171,138,.1)">🔍</div>
+        <div class="artifact-name-block">
+          <div class="artifact-title">explorer.exe in wrong path</div>
+          <div class="artifact-subtitle">Typosquatting / Process Spoofing</div>
+        </div>
+      </div>
+      <div class="artifact-body">Legitimate explorer.exe lives in <code>%SystemRoot%\explorer.exe</code> (C:\Windows\), <strong>not</strong> in System32. A process named explorer.exe running from System32 or any other path is malware using a trusted name.
+      <div class="insight-box" style="margin-top:6px"><div class="ib-label">VQL Hunt</div><div class="ib-text"><code>SELECT * FROM pslist() WHERE Name =~ "explorer" AND NOT Exe =~ "(?i)C:\\\\Windows\\\\explorer.exe"</code></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 5: Lateral Movement ── -->
+<div id="ft-lateral" class="sp">
+  <div class="banner"><strong>Lateral movement is inescapable.</strong> Every attacker — from script kiddie to nation state — must move from their initial foothold to their target. Every technique leaves traces across multiple artifact types. Your job is to correlate them.</div>
+
+  <div class="h2">Lateral Movement Techniques & Evidence Mapping</div>
+  <div class="g2">
+    <div class="card" style="border-top:3px solid #c04040">
+      <div class="card-title"><span class="ct ct-r">🖥</span> Remote Desktop Protocol (RDP)</div>
+      <div class="p">RDP is the most common initial access and lateral movement vector. Every RDP session leaves evidence on both the source and destination system.</div>
+      <div class="h3">Destination System</div>
+      <div class="tbl-wrap"><table class="vt">
+        <tr><th>Log</th><th>Event IDs</th><th>Evidence</th></tr>
+        <tr><td>Security</td><td>4624 Type 10</td><td>Successful RDP logon + source IP</td></tr>
+        <tr><td>Security</td><td>4625</td><td>Failed RDP logon attempts</td></tr>
+        <tr><td>Security</td><td>4778/4779</td><td>Session reconnect/disconnect</td></tr>
+        <tr><td>TermSvc-RemoteConnectionMgr</td><td>1149</td><td>RDP auth successful (Win7+)</td></tr>
+        <tr><td>TermSvc-LocalSessionMgr</td><td>21, 22</td><td>RDP successful logon with username</td></tr>
+        <tr><td>TermSvc-LocalSessionMgr</td><td>23</td><td>RDP logoff with username</td></tr>
+        <tr><td>RdpCoreTS\Operational</td><td>98, 131</td><td>Network connection established (131 has source IP)</td></tr>
+      </table></div>
+      <div class="h3" style="margin-top:10px">Source System</div>
+      <div class="tbl-wrap"><table class="vt">
+        <tr><th>Artifact</th><th>Evidence</th></tr>
+        <tr><td>NTUSER.DAT registry</td><td>MRU of RDP destinations</td></tr>
+        <tr><td>JumpLists (mstsc-appid)</td><td>Connection history with timestamps</td></tr>
+        <tr><td>BAM/DAM</td><td>Last time mstsc.exe was run</td></tr>
+        <tr><td>TerminalServices-RDPClient</td><td>Event 1024 (hostname) / 1102 (IP)</td></tr>
+        <tr><td>Bitmap Cache</td><td>C:\Users\...\AppData\Local\Microsoft\Terminal Server Client\Cache\</td></tr>
+      </table></div>
+    </div>
+
+    <div class="card" style="border-top:3px solid var(--orange)">
+      <div class="card-title"><span class="ct ct-o">🔑</span> Pass-the-Hash / Lateral Tool Transfer</div>
+      <div class="p">Attackers reuse NTLM hashes to authenticate without the plaintext password. PSExec, WMI, and SMB share access all leave cross-artifact trails.</div>
+      <div class="h3">Evidence Chain</div>
+      <div class="tbl-wrap"><table class="vt">
+        <tr><th>Artifact</th><th>Evidence</th></tr>
+        <tr><td>Event 4624 Type 3</td><td>Network logon (SMB/WMI). Source IP is the attacker's machine.</td></tr>
+        <tr><td>Event 4648</td><td>Explicit credential logon — logs both source and alternate account used</td></tr>
+        <tr><td>Event 4776</td><td>NTLM authentication — records source hostname</td></tr>
+        <tr><td>Event 5140</td><td>Network share accessed (C$, ADMIN$, IPC$)</td></tr>
+        <tr><td>Event 7045</td><td>New service installed on destination — PSExec creates PSEXESVC</td></tr>
+        <tr><td>ShimCache / Prefetch</td><td>psexec.exe / paexec.exe on both source and destination</td></tr>
+        <tr><td>SRUM</td><td>Historical network bytes showing large file transfer to/from attacker IP</td></tr>
+      </table></div>
+      <div class="cb" style="margin-top:10px;font-size:11px"><span class="cmt">-- Hunt for PSExec-like service creation followed by deletion</span>
+<span class="kw">SELECT</span> System.TimeCreated, EventData.ServiceName,
+       EventData.ImagePath, EventData.AccountName
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"System.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">7045</span>
+  <span class="kw">AND</span> EventData.ServiceName <span class="kw">=~</span> <span class="str">"psexe|remcom|paexec"</span>
+<button class="copy-btn">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">🔗</span> WMI Lateral Movement</div>
+    <div class="p">Windows Management Instrumentation (WMI) is heavily abused for lateral movement and persistence. It runs as system, leaves minimal footprint, and is present on every Windows system.</div>
+    <div class="g2">
+      <div>
+        <div class="h3">WMI Execution Indicators</div>
+        <ul class="vl">
+          <li>WmiPrvSE.exe spawning unusual child processes</li>
+          <li>Event 4688: Process creation with parent WmiPrvSE.exe</li>
+          <li>WMI subscriptions in the WMI repository (persistent)</li>
+          <li>Microsoft-Windows-WMI-Activity/Operational Event 5857/5860</li>
+        </ul>
+      </div>
+      <div class="cb" style="font-size:11px"><span class="cmt">-- Hunt WMI persistence subscriptions</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">wmi</span>(
+  query=<span class="str">"SELECT * FROM __EventFilter"</span>)
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">wmi</span>(
+  query=<span class="str">"SELECT * FROM __EventConsumer"</span>)
+<button class="copy-btn">Copy</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 6: Timestamps & MACB ── -->
+<div id="ft-timestamps" class="sp">
+  <div class="banner"><strong>Timestamps lie — unless you understand them.</strong> MACB timestamps (Modified, Accessed, Changed/$SI, Birth) tell a story, but that story is highly dependent on the OS version and the exact file operation performed. This section explains what Velociraptor's MFT data actually means.</div>
+
+  <div class="h2">MACB Timestamps Explained</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><span class="ct ct-b">🕐</span> The Four NTFS Timestamps</div>
+      <div class="tbl-wrap"><table class="vt">
+        <tr><th>Stamp</th><th>Full Name</th><th>Updated When</th></tr>
+        <tr><td><span class="pill p-o">M</span></td><td>$SI Modified</td><td>File data content is written/changed</td></tr>
+        <tr><td><span class="pill p-b">A</span></td><td>$SI Accessed</td><td>File is read or executed (often disabled on Win10+)</td></tr>
+        <tr><td><span class="pill p-t">C</span></td><td>$SI Changed</td><td>MFT entry metadata changes (permissions, rename, owner)</td></tr>
+        <tr><td><span class="pill p-r">B</span></td><td>$FN Birth</td><td>File is created on this volume (copied = creation time of copy)</td></tr>
+      </table></div>
+      <div class="p" style="margin-top:10px">NTFS stores timestamps in two places: the <code>$STANDARD_INFORMATION</code> attribute (visible to tools/API) and the <code>$FILE_NAME</code> attribute (harder to modify, requires kernel access). Timestomping tools change <code>$SI</code> but often miss <code>$FN</code> — a discrepancy between them is a timestomping indicator.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-r">⚠</span> Timestomping Detection</div>
+      <div class="p">Timestomping is the attacker practice of modifying file timestamps to hide activity or blend in with legitimate files. Velociraptor's MFT parser exposes both <code>$SI</code> and <code>$FN</code> timestamps, enabling detection.</div>
+      <div class="insight-box"><div class="ib-label">Detection Rule</div><div class="ib-text">If <code>$SI_Modified</code> is <em>earlier</em> than <code>$FN_Modified</code>, the file has been timestomped. The <code>$FN</code> timestamp requires kernel-level access to change and is rarely altered by commodity tools.</div></div>
+      <div class="cb" style="font-size:11px"><span class="cmt">-- Detect timestomping via $SI vs $FN discrepancy</span>
+<span class="kw">SELECT</span> FullPath, SI_Mtime, FN_Mtime,
+  SI_Mtime - FN_Mtime <span class="kw">AS</span> TimeDiff
+<span class="kw">FROM</span> <span class="fn">parse_mft</span>()
+<span class="kw">WHERE</span> SI_Mtime &lt; FN_Mtime
+  <span class="kw">AND</span> FullPath <span class="kw">=~</span> <span class="str">"\.exe$"</span>
+<button class="copy-btn">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="h2">Critical Timestamp Rules (SANS FOR500)</div>
+  <div class="card">
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>File Operation</th><th>$SI Modified</th><th>$SI Accessed</th><th>$SI Changed</th><th>$SI Birth (Creation)</th><th>Forensic Note</th></tr>
+      <tr><td><strong>File Created</strong></td><td>Creation time</td><td>Creation time</td><td>Creation time</td><td>Creation time</td><td>All four match on new file creation</td></tr>
+      <tr><td><strong>File Copied (new)</strong></td><td>Inherited from original</td><td>Copy time</td><td>Copy time</td><td>Copy time</td><td>Birth = time of copy. Modified stays from source → reveals attacker staging</td></tr>
+      <tr><td><strong>File Modified</strong></td><td>Modification time</td><td>Modification time</td><td>Modification time</td><td>No change</td><td>Birth unchanged → file was created before this modification</td></tr>
+      <tr><td><strong>File Renamed</strong></td><td>No change</td><td>No change</td><td>Rename time</td><td>No change</td><td>Changed time shows rename even if other timestamps are backdated</td></tr>
+      <tr><td><strong>Volume File Move (CLI)</strong></td><td>Inherited</td><td>Move time</td><td>Inherited</td><td>Move time</td><td>Birth = move time when using command line move across volumes</td></tr>
+    </table></div>
+    <div class="insight-box" style="margin-top:10px"><div class="ib-label">💡 Key Investigative Rule</div><div class="ib-text">If a file's <strong>Modified time is earlier than its Birth (Creation) time</strong>, the file was copied from another location. The Modified time reflects when the source file was last written; the Birth time reflects when it arrived on this volume. This is extremely common with staged malware — the binary was compiled weeks ago but only copied here today.</div></div>
+  </div>
+</div>
+`;}
 
 /* ── Pane content ── */
 function paneOverview(){return`
@@ -379,14 +939,16 @@ chmod +x velociraptor-linux-amd64
 <span class="cmt"># macOS</span>
 chmod +x velociraptor-darwin-amd64
 
-<span class="cmt"># Windows — just run the .exe</span></div>
+<span class="cmt"># Windows — just run the .exe</span>
+<button class="copy-btn">Copy</button></div>
 <div class="h2">2 — Launch the instant GUI</div>
 <div class="cb"><span class="cmt"># All-in-one: server + client + GUI in one command</span>
 <span class="fn">velociraptor</span> gui
 
 <span class="cmt"># Opens your browser at https://localhost:8889</span>
 <span class="cmt"># Default credentials: admin / password</span>
-<span class="cmt"># Temp data store created automatically — nothing permanent</span></div>
+<span class="cmt"># Temp data store created automatically — nothing permanent</span>
+<button class="copy-btn">Copy</button></div>
 <div class="h2">3 — Generate a production server config</div>
 <div class="cb"><span class="cmt"># Interactive wizard — sets TLS, data store path, ports</span>
 <span class="fn">velociraptor</span> config generate -i
@@ -395,7 +957,8 @@ chmod +x velociraptor-darwin-amd64
 <span class="fn">velociraptor</span> --config server.config.yaml frontend -v
 
 <span class="cmt"># Create the first admin user</span>
-<span class="fn">velociraptor</span> --config server.config.yaml user add admin --role administrator</div>
+<span class="fn">velociraptor</span> --config server.config.yaml user add admin --role administrator
+<button class="copy-btn">Copy</button></div>
 <div class="h2">4 — Run your first VQL query</div>
 <div class="vql-demo">
   <div class="vql-hdr">
@@ -406,7 +969,7 @@ chmod +x velociraptor-darwin-amd64
     <button class="run-btn" onclick="runVQL(this,'qs1')">▶ Run</button>
   </div>
   <div class="vql-body">
-    <div class="cb" style="margin:0"><span class="kw">SELECT</span> Name, Pid, CommandLine <span class="kw">FROM</span> <span class="fn">pslist</span>()</div>
+    <div class="cb" style="margin:0"><span class="kw">SELECT</span> Name, Pid, CommandLine <span class="kw">FROM</span> <span class="fn">pslist</span>()<button class="copy-btn">Copy</button></div>
     <div class="vql-result" id="qs1">
       <table class="vt"><tr><th>Name</th><th>Pid</th><th>CommandLine</th></tr>
       <tr><td>velociraptor.exe</td><td>4821</td><td>velociraptor gui</td></tr>
@@ -424,7 +987,8 @@ chmod +x velociraptor-darwin-amd64
 <span class="cmt"># Linux (creates systemd unit)</span>
 <span class="fn">velociraptor</span> --config client.config.yaml service install
 sudo systemctl enable velociraptor_client
-sudo systemctl start velociraptor_client</div>`;}
+sudo systemctl start velociraptor_client
+<button class="copy-btn">Copy</button></div>`;}
 
 function paneArchitecture(){return`
 <div class="h2">Component Overview</div>
@@ -503,7 +1067,8 @@ function paneVQL(){return`
 <span class="kw">FROM</span>   <span class="fn">plugin_name</span>(arg=<span class="str">'value'</span>)  <span class="cmt">-- data source plugin</span>
 <span class="kw">WHERE</span>  condition         <span class="cmt">-- filter rows</span>
 <span class="kw">ORDER BY</span> col1 <span class="kw">DESC</span>     <span class="cmt">-- sort results</span>
-<span class="kw">LIMIT</span>  100              <span class="cmt">-- cap row count</span></div>
+<span class="kw">LIMIT</span>  100              <span class="cmt">-- cap row count</span>
+<button class="copy-btn">Copy</button></div>
   <div class="tbl-wrap"><table class="vt">
     <tr><th>Clause / Operator</th><th>Purpose</th><th>Example</th></tr>
     <tr><td><code>SELECT</code></td><td>Choose output columns</td><td>SELECT Name, Pid</td></tr>
@@ -552,7 +1117,8 @@ function paneVQL(){return`
     <div class="vql-body">
       <div class="cb" style="margin:0"><span class="kw">SELECT</span> Pid, Ppid, Name, CommandLine, CreateTime
 <span class="kw">FROM</span> <span class="fn">pslist</span>()
-<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"powershell"</span></div>
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"powershell"</span>
+<button class="copy-btn">Copy</button></div>
       <div class="vql-result" id="ex1"><table class="vt">
         <tr><th>Pid</th><th>Ppid</th><th>Name</th><th>CommandLine</th><th>CreateTime</th></tr>
         <tr><td>5512</td><td>3120</td><td>powershell.exe</td><td>powershell -enc JAB...</td><td>2025-03-24 09:12</td></tr>
@@ -572,7 +1138,8 @@ function paneVQL(){return`
       <div class="cb" style="margin:0"><span class="kw">SELECT</span> FullPath, Size, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256, Mtime
 <span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Windows/System32/*.exe"</span>)
 <span class="kw">WHERE</span> Size &lt; <span class="str">10000</span>
-<span class="kw">ORDER BY</span> Size</div>
+<span class="kw">ORDER BY</span> Size
+<button class="copy-btn">Copy</button></div>
       <div class="vql-result" id="ex2"><table class="vt">
         <tr><th>FullPath</th><th>Size</th><th>SHA256</th><th>Mtime</th></tr>
         <tr><td>C:\Windows\System32\reg.exe</td><td>6144</td><td>a3c2a...</td><td>2023-10-11</td></tr>
@@ -592,7 +1159,8 @@ function paneVQL(){return`
       <div class="cb" style="margin:0"><span class="kw">SELECT</span> System.TimeCreated, EventData.TargetUserName <span class="kw">AS</span> User,
        EventData.IpAddress <span class="kw">AS</span> SourceIP, EventData.LogonType
 <span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
-<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span> <span class="kw">LIMIT</span> <span class="str">5</span></div>
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span> <span class="kw">LIMIT</span> <span class="str">5</span>
+<button class="copy-btn">Copy</button></div>
       <div class="vql-result" id="ex3"><table class="vt">
         <tr><th>TimeCreated</th><th>User</th><th>SourceIP</th><th>LogonType</th></tr>
         <tr><td>2025-03-24 08:01</td><td>jsmith</td><td>10.0.0.14</td><td>3 (Network)</td></tr>
@@ -607,13 +1175,15 @@ function paneVQL(){return`
 <span class="kw">LET</span> suspicious = <span class="kw">SELECT</span> Pid, Name, CommandLine
   <span class="kw">FROM</span> <span class="fn">pslist</span>() <span class="kw">WHERE</span> CommandLine <span class="kw">=~</span> <span class="str">"mimikatz|beacon|cobalt"</span>
 
-<span class="kw">SELECT</span> * <span class="kw">FROM</span> suspicious <span class="kw">WHERE</span> Pid > <span class="str">1000</span></div>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> suspicious <span class="kw">WHERE</span> Pid > <span class="str">1000</span>
+<button class="copy-btn">Copy</button></div>
   <div class="h3">foreach — Iterate Over Rows</div>
   <div class="cb"><span class="cmt">-- For each suspicious process, list its network connections</span>
 <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">foreach</span>(
   row={ <span class="kw">SELECT</span> Pid <span class="kw">FROM</span> suspicious },
   query={ <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">netstat</span>() <span class="kw">WHERE</span> Pid = Pid }
-)</div>
+)
+<button class="copy-btn">Copy</button></div>
   <div class="h3">Accessors — Filesystem Abstraction Layer</div>
   <div class="tbl-wrap"><table class="vt">
     <tr><th>Accessor</th><th>Description</th></tr>
@@ -627,7 +1197,8 @@ function paneVQL(){return`
   <div class="cb"><span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">glob</span>(
   globs=<span class="str">"/**/*.exe"</span>,
   accessor=<span class="str">"ntfs"</span>  <span class="cmt">-- bypass OS, see hidden and locked files</span>
-)</div>
+)
+<button class="copy-btn">Copy</button></div>
 </div>`;}
 
 function paneArtifacts(){return`
@@ -654,7 +1225,8 @@ function paneArtifacts(){return`
     <span class="kw">query:</span> |
       <span class="kw">SELECT</span> FullPath, Size, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256
       <span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Windows/System32/*.exe"</span>)
-      <span class="kw">WHERE</span> Size &lt; MaxSize</div>
+      <span class="kw">WHERE</span> Size &lt; MaxSize
+<button class="copy-btn">Copy</button></div>
   <div class="tbl-wrap"><table class="vt">
     <tr><th>Field</th><th>Required</th><th>Description</th></tr>
     <tr><td><code>name</code></td><td><span class="badge badge-ok">Yes</span></td><td>Unique dot-namespaced ID, e.g. Windows.Forensics.Prefetch</td></tr>
@@ -708,7 +1280,7 @@ function paneArtifacts(){return`
   <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Parameter types</span><span class="acc-arr">›</span></div><div class="acc-b">Available parameter types: <code>string</code>, <code>int</code>, <code>bool</code>, <code>timestamp</code>, <code>choices</code>, <code>csv</code>, <code>json</code>, <code>yara</code>, <code>regex</code>, <code>upload</code>. Always provide sensible defaults so analysts can run without configuring everything. The <code>yara</code> and <code>regex</code> types give analysts a multiline editor in the GUI.</div></div>
   <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Resource limits</span><span class="acc-arr">›</span></div><div class="acc-b">Add a <code>resources</code> block to prevent runaway artifacts from degrading endpoint performance. Key fields: <code>cpu_limit: 50</code> (percent), <code>max_rows: 100000</code>, <code>timeout: 300</code> (seconds), <code>max_upload_bytes: 1000000000</code>. These are enforced by the client-side VQL engine.</div></div>
   <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Multiple sources</span><span class="acc-arr">›</span></div><div class="acc-b">Artifacts support multiple named <code>sources</code>, each producing a separate result table shown as tabs in the GUI. Use this to collect related but distinct data in one artifact — e.g. one source for processes, another for network connections, and a third for startup items.</div></div>
-  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Importing and exporting</span><span class="acc-arr">›</span></div><div class="acc-b">Use the <code>export</code> field to expose VQL functions and constants that other artifacts can <code>import</code>. This enables composability and prevents code duplication across your artifact library. Import with: <code>import: - path: Custom.Helpers.Shared</code> in the importing artifact.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Importing and exporting</span><span class="acc-arr">›</span></div><div class="acc-b">Use the <code>export</code> field to expose VQL functions and constants that other artifacts can <code>import</code>. This enables composability and prevents code duplication across your artifact library.</div></div>
   <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Artifact Exchange</span><span class="acc-arr">›</span></div><div class="acc-b">The <a href="https://docs.velociraptor.app/exchange/" target="_blank" style="color:var(--teal)">Artifact Exchange</a> hosts hundreds of community-contributed artifacts. Import them directly in the GUI under <em>View Artifacts → Add Artifact → Import from Exchange</em>. Review the VQL before deploying in production.</div></div>
 </div>`;}
 
@@ -751,7 +1323,6 @@ function paneClients(){return`
 </div>
 <div class="card">
   <div class="card-title"><span class="ct ct-t">◈</span> Searching for Clients</div>
-  <div class="p">The client search bar supports multiple search types to quickly find endpoints:</div>
   <div class="tbl-wrap"><table class="vt">
     <tr><th>Query</th><th>Effect</th></tr>
     <tr><td><code>hostname:WIN-DC01</code></td><td>Match by hostname substring</td></tr>
@@ -819,7 +1390,8 @@ rule CobaltStrikeBeacon {
 '''</span>
 
 <span class="kw">SELECT</span> FullPath, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256, Rule
-<span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, files=<span class="str">"C:/Windows/**/*.dll"</span>)</div>`;}
+<span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, files=<span class="str">"C:/Windows/**/*.dll"</span>)
+<button class="copy-btn">Copy</button></div>`;}
 
 function paneForensics(){return`
 <div id="for-tabs" class="tab-bar">
@@ -853,7 +1425,6 @@ function paneForensics(){return`
     <tr><td>Windows.Forensics.Bam</td><td>Background Activity Monitor (last run time)</td><td>SYSTEM hive, Services\bam</td></tr>
     <tr><td>Windows.System.Pslist</td><td>Currently running processes</td><td>Live kernel data</td></tr>
     <tr><td>Windows.EventLogs.EvtxHunter</td><td>Event ID 4688 process creation</td><td>Security.evtx</td></tr>
-    <tr><td>Windows.Forensics.UserHive</td><td>NTUSER.DAT recent docs and MRUs</td><td>Per-user NTUSER.DAT</td></tr>
   </table></div>
 </div>
 <div id="ft3" class="sp">
@@ -888,7 +1459,8 @@ function paneForensics(){return`
 <span class="kw">SELECT</span> Pid, Name, Rule <span class="kw">FROM</span> <span class="fn">foreach</span>(
   row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>() },
   query={ <span class="kw">SELECT</span> Pid, Name, Rule <span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, pid=Pid) }
-)</div>
+)
+<button class="copy-btn">Copy</button></div>
 </div>
 <div id="ft5" class="sp">
   <div class="banner"><strong>Dead-disk analysis</strong> runs any CLIENT artifact against a raw disk image (E01, DD, VMDK) using filesystem remapping — no separate tooling needed.</div>
@@ -900,8 +1472,8 @@ function paneForensics(){return`
 <span class="fn">velociraptor</span> --config deaddisk.yaml artifacts collect \
   Windows.Forensics.Prefetch \
   Windows.Forensics.Amcache \
-  Windows.EventLogs.EvtxHunter</div>
-  <div class="p">Once remapped, all CLIENT artifacts transparently redirect their filesystem calls to the image. This gives you MFT, event logs, Prefetch, registry, and everything else from the offline image — using the exact same workflow as live endpoint analysis.</div>
+  Windows.EventLogs.EvtxHunter
+<button class="copy-btn">Copy</button></div>
 </div>`;}
 
 function paneMonitoring(){return`
@@ -935,18 +1507,8 @@ function paneMonitoring(){return`
       format=<span class="str">"ALERT: %v on %v"</span>,
       args=[CommandLine, ClientId]))
   )}
-)</div>
-  </div>
-</div>
-<div class="card">
-  <div class="card-title"><span class="ct ct-b">⚙</span> Enabling Monitoring on a Client</div>
-  <div class="flow" style="margin-bottom:0">
-    <div class="step"><span class="step-n" style="font-size:10px">GUI</span><span class="step-l">Open client</span></div>
-    <div class="step"><span class="step-n" style="font-size:10px">Tab</span><span class="step-l">Client Events</span></div>
-    <div class="step"><span class="step-n" style="font-size:10px">+</span><span class="step-l">Add artifact</span></div>
-    <div class="step"><span class="step-n" style="font-size:10px">Params</span><span class="step-l">Configure</span></div>
-    <div class="step"><span class="step-n" style="font-size:10px">Save</span><span class="step-l">Apply to client</span></div>
-    <div class="step"><span class="step-n" style="font-size:10px">Live</span><span class="step-l">Events stream</span></div>
+)
+<button class="copy-btn">Copy</button></div>
   </div>
 </div>`;}
 
@@ -990,8 +1552,8 @@ function paneOffline(){return`
 <span class="fn">velociraptor</span> --config server.config.yaml \
   import --client_id C.abc123 offline_collection.zip
 
-<span class="cmt"># Or drag-and-drop in GUI: Server Artifacts → Import Hunt → Upload ZIP</span></div>
-<div class="p">After import the collection appears exactly like a live client result — all GUI analysis, Notebooks, and post-processing apply with no workflow changes.</div>`;}
+<span class="cmt"># Or drag-and-drop in GUI: Server Artifacts → Import Hunt → Upload ZIP</span>
+<button class="copy-btn">Copy</button></div>`;}
 
 function paneNotebooks(){return`
 <div class="banner"><strong>Notebooks</strong> are built-in interactive investigation environments combining VQL query cells with Markdown documentation cells. They create living, shareable investigation records.</div>
@@ -1016,7 +1578,6 @@ function paneNotebooks(){return`
     <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT * FROM hunt_results(hunt_id='H.abc') WHERE ClientId = 'C.xyz'</code></div></div>
     <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT TimeCreated, User, SourceIP FROM parse_evtx(...) WHERE EventID = 4624</code></div></div>
     <div class="nb-cell"><div class="nb-cell-hdr nb-md-hdr">Markdown</div><div class="nb-cell-body" style="color:var(--muted);font-size:11px"><em>## Findings</em><br>Attacker logged in from 185.220.101.x at 09:23 UTC using stolen credentials...</div></div>
-    <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT Pid, Name FROM pslist() WHERE CreateTime > '2025-03-24T09:23:00Z'</code></div></div>
   </div>
 </div>`;}
 
@@ -1040,33 +1601,12 @@ function paneAPI(){return`
     <div class="cb" style="font-size:11px"><span class="cmt"># Install the Python client library</span>
 pip install pyvelociraptor
 
-<span class="cmt"># Use an API config generated from the server</span>
+<span class="cmt"># Generate an API config from the server</span>
 <span class="fn">velociraptor</span> --config server.config.yaml \
-  config api_client --name myapp api.config.yaml</div>
+  config api_client --name myapp api.config.yaml
+<button class="copy-btn">Copy</button></div>
   </div>
 </div>
-<div class="h3">Trigger a Collection via API (Python)</div>
-<div class="cb"><span class="cmt">import</span> pyvelociraptor
-<span class="cmt">import</span> api_pb2, api_pb2_grpc
-
-config = pyvelociraptor.LoadConfigFile(<span class="str">"api.config.yaml"</span>)
-creds = pyvelociraptor.GrpcCreds(config)
-stub = api_pb2_grpc.APIStub(creds)
-
-<span class="cmt"># Schedule an artifact collection on a specific client</span>
-response = stub.CollectArtifact(api_pb2.CollectArtifactRequest(
-  client_id=<span class="str">"C.abc123"</span>,
-  artifacts=[api_pb2.Artifact(name=<span class="str">"Windows.System.Pslist"</span>)],
-), timeout=<span class="str">60</span>)
-
-print(f<span class="str">"Flow ID: {response.flow_id}"</span>)</div>
-<div class="h3">Stream Hunt Results via API</div>
-<div class="cb"><span class="cmt"># Stream all rows from a completed hunt to stdout as JSON</span>
-<span class="fn">velociraptor</span> --config server.config.yaml query <span class="str">"
-SELECT * FROM hunt_results(
-  hunt_id='H.abc123',
-  artifact='Windows.Forensics.Prefetch'
-)"</span> --format jsonl</div>
 <div class="h3">ACL Roles Reference</div>
 <div class="tbl-wrap"><table class="vt">
   <tr><th>Role</th><th>Permissions Summary</th></tr>
@@ -1137,33 +1677,102 @@ function paneReference(){return`
       </ul>
     </div>
     <div class="card" style="border-left:3px solid var(--orange)">
-      <div class="card-title">Community & Training</div>
+      <div class="card-title">SANS DFIR Resources</div>
       <ul class="vl">
+        <li><a href="https://www.sans.org/posters/hunt-evil/" target="_blank" style="color:var(--orange)">Hunt Evil Poster</a> — normal vs evil processes (FOR508)</li>
+        <li><a href="https://www.sans.org/posters/windows-forensic-analysis/" target="_blank" style="color:var(--orange)">Windows Forensic Analysis Poster</a> — all artifacts (FOR500)</li>
+        <li><a href="https://www.sans.org/blog/what-is-dfir/" target="_blank" style="color:var(--orange)">What is DFIR?</a> — SANS intro article</li>
+        <li><a href="https://dfir.sans.org" target="_blank" style="color:var(--orange)">dfir.sans.org</a> — SANS DFIR hub</li>
         <li><a href="https://docs.velociraptor.app/discord/" target="_blank" style="color:var(--orange)">Discord</a> — active community chat</li>
-        <li><a href="https://www.youtube.com/playlist?list=PLz4xB83Y3Vbjtqr_ttOkBWZZ_ewEVVPXQ" target="_blank" style="color:var(--orange)">YouTube playlist</a> — training videos</li>
-        <li><a href="https://github.com/Velocidex/velociraptor/discussions" target="_blank" style="color:var(--orange)">GitHub Discussions</a></li>
-        <li>velociraptor-discuss mailing list</li>
-        <li>VeloCON annual community conference</li>
       </ul>
     </div>
   </div>
-  <div class="card">
-    <div class="card-title"><span class="ct ct-b">i</span> Official Training Course (7 Sessions)</div>
-    <div class="tbl-wrap"><table class="vt">
-      <tr><th>#</th><th>Session Topic</th></tr>
-      <tr><td>1</td><td>Introduction — architecture, deployment modes, quick start</td></tr>
-      <tr><td>2</td><td>VQL Fundamentals — syntax, plugins, functions, scope</td></tr>
-      <tr><td>3</td><td>Artifacts — writing, parameterizing, types, and management</td></tr>
-      <tr><td>4</td><td>Hunting — fleet-wide hunts, targeting, result analysis</td></tr>
-      <tr><td>5</td><td>Forensic Analysis — filesystem, NTFS, event logs, execution evidence</td></tr>
-      <tr><td>6</td><td>Monitoring and Detection — CLIENT_EVENT, YARA, Sigma, ETW</td></tr>
-      <tr><td>7</td><td>Advanced — API automation, dead-disk analysis, notebooks, offline collectors</td></tr>
-    </table></div>
-  </div>
 </div>`;}
 
-/* ── Render functions ── */
-const PANES = {overview:paneOverview,quickstart:paneQuickstart,architecture:paneArchitecture,vql:paneVQL,artifacts:paneArtifacts,clients:paneClients,hunting:paneHunting,forensics:paneForensics,monitoring:paneMonitoring,offline:paneOffline,notebooks:paneNotebooks,api:paneAPI,reference:paneReference};
+/* ── Search index ── */
+const SEARCH_INDEX = [
+  {id:'dfirfundamentals',title:'PICERL Incident Response Lifecycle',text:'preparation identification containment eradication recovery lessons learned IR lifecycle DFIR framework phases'},
+  {id:'dfirfundamentals',title:'Order of Volatility',text:'volatile evidence RAM memory processes network connections disk order of collection forensics'},
+  {id:'dfirfundamentals',title:'MITRE ATT&CK Mapping',text:'initial access execution persistence privilege escalation defense evasion credential access lateral movement exfiltration impact kill chain'},
+  {id:'dfirfundamentals',title:'Prefetch — Proof of Execution',text:'prefetch .pf file execution history last run time run count binary ran proof of execution C:\\Windows\\Prefetch'},
+  {id:'dfirfundamentals',title:'Amcache — SHA1 Hash Evidence',text:'amcache SHA1 hash recently executed software binary hash threat intelligence VirusTotal'},
+  {id:'dfirfundamentals',title:'ShimCache — Application Compatibility',text:'shimcache appcache application compatibility cache executable present on filesystem SYSTEM hive'},
+  {id:'dfirfundamentals',title:'SRUM — 30-60 Days History',text:'SRUM system resource usage monitor 30 days 60 days historical network bytes application execution SRUDB.dat'},
+  {id:'dfirfundamentals',title:'BAM/DAM — Last Execution Time',text:'BAM DAM background activity monitor last execution time per user SID Windows 10 registry'},
+  {id:'dfirfundamentals',title:'NTFS — MFT USN Alternate Data Streams',text:'MFT master file table USN change journal alternate data streams ADS Zone.Identifier NTFS accessor deleted files'},
+  {id:'dfirfundamentals',title:'Normal Windows Processes (Hunt Evil)',text:'smss lsass svchost services.exe wininit csrss winlogon explorer process tree parent normal legitimate'},
+  {id:'dfirfundamentals',title:'Process Anomaly Detection',text:'lsass child process credential dumping mimikatz svchost -k parameter office app spawning powershell macro'},
+  {id:'dfirfundamentals',title:'Lateral Movement — RDP Evidence',text:'RDP remote desktop protocol 4624 4625 1149 mstsc.exe lateral movement source destination event logs terminal services'},
+  {id:'dfirfundamentals',title:'Pass-the-Hash Detection',text:'pass the hash PtH 4648 4776 NTLM authentication PSExec 7045 service installed lateral movement'},
+  {id:'dfirfundamentals',title:'Timestomping Detection',text:'timestomping MACB timestamps $SI $FN modified accessed changed birth creation time discrepancy anti-forensics'},
+  {id:'dfirfundamentals',title:'MACB Timestamps — File Copy vs Creation',text:'modified accessed changed birth file copy creation time timestamps NTFS forensic note investigation'},
+  {id:'vql',title:'VQL Syntax Basics',text:'SELECT FROM WHERE ORDER BY LIMIT LET regex match =~ foreach VQL query syntax'},
+  {id:'vql',title:'VQL Plugins — pslist netstat glob',text:'pslist netstat glob stat read_file hash parse_evtx parse_mft yara sigma wmi upload'},
+  {id:'vql',title:'NTFS Accessor',text:'ntfs accessor raw registry zip s3 smb bypass OS cache ADS locked files'},
+  {id:'artifacts',title:'Artifact YAML Structure',text:'name description type parameters sources precondition tools resources export artifact definition YAML'},
+  {id:'artifacts',title:'CLIENT_EVENT Artifacts',text:'CLIENT_EVENT continuous monitoring real-time streaming artifact type'},
+  {id:'hunting',title:'Hunt Workflow',text:'hunt artifact collect fleet targeting label OS condition client ID results CSV JSONL'},
+  {id:'hunting',title:'YARA Hunt — Cobalt Strike',text:'YARA Cobalt Strike beacon ReflectiveLoader hunt DLL detection'},
+  {id:'forensics',title:'Windows Event Log IDs',text:'4624 4625 4648 4688 4698 4720 7045 4103 4104 1102 event ID log'},
+  {id:'forensics',title:'Dead Disk Analysis',text:'dead disk E01 raw image artifact collection deaddisk remapping offline'},
+  {id:'monitoring',title:'SERVER_EVENT Alerting',text:'SERVER_EVENT watch_monitoring Slack webhook alert automated response SOAR'},
+  {id:'reference',title:'CLI Commands',text:'gui config generate frontend query artifacts list collect user add service install import deaddisk'},
+];
+
+/* ── Global Search ── */
+window.openSearch = function(){
+  document.getElementById('gsearch-overlay').classList.add('open');
+  document.getElementById('gsearch-input').focus();
+  document.getElementById('gsearch-results').innerHTML = '<div class="gs-empty">Start typing to search the guide…</div>';
+  document.getElementById('gsearch-input').value = '';
+};
+window.closeSearch = function(e){
+  if(e.target.id === 'gsearch-overlay') document.getElementById('gsearch-overlay').classList.remove('open');
+};
+window.doSearch = function(q){
+  const results = document.getElementById('gsearch-results');
+  if(!q.trim()){results.innerHTML='<div class="gs-empty">Start typing to search the guide…</div>';return;}
+  const terms = q.toLowerCase().split(/\s+/);
+  const matches = SEARCH_INDEX.filter(item => {
+    const hay = (item.title + ' ' + item.text).toLowerCase();
+    return terms.every(t => hay.includes(t));
+  });
+  if(!matches.length){results.innerHTML='<div class="gs-empty">No results found.</div>';return;}
+  const highlight = (str) => {
+    let h = str;
+    terms.forEach(t => { h = h.replace(new RegExp('('+t+')', 'gi'), '<em>$1</em>'); });
+    return h;
+  };
+  results.innerHTML = matches.slice(0,12).map(m => `
+    <div class="gs-result" onclick="goTo('${m.id}');document.getElementById('gsearch-overlay').classList.remove('open')">
+      <div class="gs-title">${highlight(m.title)}</div>
+      <div class="gs-match">${TITLES[m.id] || m.id} section</div>
+    </div>`).join('');
+};
+window.searchKeyNav = function(e){
+  if(e.key==='Escape') document.getElementById('gsearch-overlay').classList.remove('open');
+};
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey||e.metaKey) && e.key==='k'){e.preventDefault();openSearch();}
+});
+
+/* ── Pane map ── */
+const PANES = {
+  overview:paneOverview,
+  quickstart:paneQuickstart,
+  architecture:paneArchitecture,
+  dfirfundamentals:paneDFIRFundamentals,
+  vql:paneVQL,
+  artifacts:paneArtifacts,
+  clients:paneClients,
+  hunting:paneHunting,
+  forensics:paneForensics,
+  monitoring:paneMonitoring,
+  offline:paneOffline,
+  notebooks:paneNotebooks,
+  api:paneAPI,
+  reference:paneReference
+};
 
 function goTo(id){
   document.querySelectorAll('.sb-item').forEach(el=>el.classList.toggle('active',el.dataset.id===id));
@@ -1215,6 +1824,26 @@ window.toggleAcc = function(h){
   if(arr) arr.style.transform = body.classList.contains('open') ? 'rotate(90deg)' : '';
 };
 
+/* ── Copy-to-clipboard for .copy-btn ── */
+document.addEventListener('click', e => {
+  if(!e.target.classList.contains('copy-btn')) return;
+  const cb = e.target.closest('.cb') || e.target.closest('.vql-body .cb');
+  if(!cb) return;
+  // Get text, excluding other copy-btn text and VQL result tables
+  const clone = cb.cloneNode(true);
+  clone.querySelectorAll('.copy-btn').forEach(b => b.remove());
+  const text = clone.innerText.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = e.target.textContent;
+    e.target.textContent = '✓ Copied';
+    e.target.classList.add('copied');
+    setTimeout(() => { e.target.textContent = 'Copy'; e.target.classList.remove('copied'); }, 1800);
+  }).catch(() => {
+    e.target.textContent = 'Error';
+    setTimeout(() => { e.target.textContent = 'Copy'; }, 1500);
+  });
+});
+
 /* ── Build sidebar ── */
 function buildNav(){
   const sb = document.getElementById('sbNav');
@@ -1232,7 +1861,6 @@ function applyTheme(){
   document.body.classList.toggle('dark',isDark);
   document.getElementById('themeBtn').textContent = isDark ? '☽ Dark' : '☀ Light';
 }
-
 document.getElementById('themeBtn').onclick = ()=>{isDark=!isDark;applyTheme();};
 
 /* ── Sidebar collapse ── */
@@ -1241,18 +1869,6 @@ document.getElementById('collapseBtn').onclick = ()=>{
   document.getElementById('sidebar').classList.toggle('collapsed',sidebarCollapsed);
   document.getElementById('collapseBtn').textContent = sidebarCollapsed ? '›' : '‹';
 };
-
-/* ── Copy code blocks ── */
-document.addEventListener('click',e=>{
-  if(e.target.classList.contains('copy-btn')){
-    const cb = e.target.closest('.cb');
-    const text = cb ? cb.innerText.replace('Copy','').trim() : '';
-    navigator.clipboard.writeText(text).then(()=>{
-      e.target.textContent='✓';
-      setTimeout(()=>e.target.textContent='Copy',1500);
-    });
-  }
-});
 
 /* ── Init ── */
 applyTheme();

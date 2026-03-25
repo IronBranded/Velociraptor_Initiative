@@ -13,7 +13,7 @@
 Open `index.html` in any modern browser — no server, no build step, no dependencies.
 
 <h3 align="center">
-  <a href="https://github.com/IronBranded/Velociraptor_Initiative/" target="_blank" rel="noopener noreferrer">
+  <a href="https://ironbranded.github.io/Velociraptor_Initiative/" target="_blank" rel="noopener noreferrer">
     🟢 TRY THE GUIDE🟢
   </a>
 </h3>

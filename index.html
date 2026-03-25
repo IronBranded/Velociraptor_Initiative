@@ -299,6 +299,24 @@ ul.vl li{margin-bottom:1px}
 .gs-section{font-size:10px;color:var(--teal);margin-bottom:3px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;padding:0 10px;margin-top:6px}
 .gs-empty{padding:20px;text-align:center;color:var(--muted);font-size:12px}
 .search-kbd{background:var(--row1);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-family:Consolas,monospace;color:var(--muted);margin-left:8px}
+
+/* ── Beginner/Expert Toggle ──────────────────────── */
+.mode-toggle{display:flex;align-items:center;background:var(--row1);border:1px solid var(--border);border-radius:20px;padding:2px;gap:2px}
+.mode-btn{border:none;background:transparent;padding:3px 10px;border-radius:16px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;color:var(--muted);transition:all .15s;white-space:nowrap}
+.mode-btn.active{background:var(--orange);color:#fff}
+.expert-only{display:none}
+body.expert-mode .expert-only{display:block}
+.beginner-note{background:rgba(26,83,200,.07);border:1px solid rgba(26,83,200,.15);border-radius:6px;padding:8px 12px;font-size:11px;color:#3a7fd4;margin-bottom:10px;line-height:1.6}
+.beginner-note strong{color:#2563c4}
+body.expert-mode .beginner-note{opacity:.45}
+
+/* ── Extra component styles ──────────────────────── */
+.scenario-hdr{background:linear-gradient(135deg,#1a1d2e 0%,#252942 100%);padding:12px 16px;border-bottom:1px solid var(--border)}
+.scenario-title{color:#fff;font-size:13px;font-weight:700;margin-bottom:2px}
+.scenario-sub{color:rgba(255,255,255,.45);font-size:11px}
+.checklist{list-style:none;padding:0;margin:0}
+.checklist li{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text)}
+.checklist li:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -342,6 +360,10 @@ ul.vl li{margin-bottom:1px}
       <button onclick="openSearch()" style="background:var(--row1);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all .15s" onmouseover="this.style.borderColor='var(--teal)';this.style.color='var(--teal)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
         🔍 Search<span class="search-kbd">Ctrl+K</span>
       </button>
+      <div class="mode-toggle" title="Toggle beginner/expert view">
+        <button class="mode-btn active" id="modeBeginner" onclick="setMode('beginner')">Beginner</button>
+        <button class="mode-btn" id="modeExpert" onclick="setMode('expert')">Expert</button>
+      </div>
       <a href="https://github.com/Velocidex/velociraptor" target="_blank" style="text-decoration:none"><span class="badge badge-warn">★ GitHub</span></a>
     </div>
   </div>
@@ -362,6 +384,8 @@ const NAV = [
   {id:'dfirfundamentals',label:'DFIR Fundamentals',icon:'◆',section:'Knowledge Foundation'},
   {id:'vql',label:'VQL Language',icon:'⌗',section:'Core Concepts'},
   {id:'artifacts',label:'Artifacts',icon:'◈'},
+  {id:'playbooks',label:'Case Studies',icon:'📋',section:'Guided Playbooks'},
+  {id:'labsetup',label:'Lab & Range Setup',icon:'🧪'},
   {id:'clients',label:'Client Management',icon:'◉',section:'Operations'},
   {id:'hunting',label:'Hunts & Hunting',icon:'◎'},
   {id:'forensics',label:'Forensic Analysis',icon:'⬟'},
@@ -369,12 +393,16 @@ const NAV = [
   {id:'offline',label:'Offline Collectors',icon:'⬡'},
   {id:'notebooks',label:'Notebooks',icon:'▤'},
   {id:'api',label:'Server API',icon:'⇄'},
+  {id:'enterprise',label:'Enterprise Deploy',icon:'🏢',section:'Enterprise & Scale'},
   {id:'reference',label:'Quick Reference',icon:'☰',section:'Reference'},
 ];
 
 const TITLES = {
   overview:'Overview',quickstart:'Quick Start',architecture:'Architecture',
   dfirfundamentals:'DFIR Fundamentals',
+  playbooks:'Case Studies & Playbooks',
+  labsetup:'Lab & Practice Range Setup',
+  enterprise:'Enterprise Deployment',
   vql:'VQL Language',artifacts:'Artifacts',clients:'Client Management',
   hunting:'Hunts & Hunting',forensics:'Forensic Analysis',monitoring:'Live Monitoring',
   offline:'Offline Collectors',notebooks:'Notebooks',api:'Server API & Automation',
@@ -385,6 +413,9 @@ const SUBS = {
   quickstart:'Download, instant GUI, and first VQL query',
   architecture:'Components, security model, scaling, and data flow',
   dfirfundamentals:'Windows internals, artifact telemetry, PICERL lifecycle, and the "why" behind evidence',
+  playbooks:'Ransomware triage, lateral movement hunting, and memory analysis walkthroughs',
+  labsetup:'Build your own practice range with victim VMs, Atomic Red Team, and simulated incidents',
+  enterprise:'Intune/GPO deployment, EDR exclusions, cloud server setup, hardening, and uninstall procedures',
   vql:'Syntax, plugins, functions, accessors, and examples',
   artifacts:'YAML structure, types, catalog, and writing tips',
   clients:'Searching, labeling, collecting, and managing endpoints',
@@ -878,7 +909,918 @@ function paneDFIRFundamentals(){return`
 </div>
 `;}
 
-/* ── Pane content ── */
+/* ═══════════════════════════════════════════════════════
+   CASE STUDIES & PLAYBOOKS
+═══════════════════════════════════════════════════════ */
+function panePlaybooks(){return`
+<div id="pb-tabs" class="tab-bar">
+  <button class="tab active" data-target="pb1">🔴 Ransomware Triage</button>
+  <button class="tab" data-target="pb2">↔ Lateral Movement</button>
+  <button class="tab" data-target="pb3">🧠 Memory & Beacon Hunt</button>
+</div>
+
+<!-- ── PLAYBOOK 1: Ransomware ── -->
+<div id="pb1" class="sp active">
+  <div class="banner-red"><strong>Scenario:</strong> The SOC alerts at 02:14 UTC — file share servers are returning errors, ransom notes are appearing in directories, and users cannot access documents. You have Velociraptor deployed on all endpoints. This playbook walks you through the first 90 minutes.</div>
+
+  <div class="h2">Phase 1 — Isolate & Preserve (0–10 min)</div>
+  <div class="banner-teal"><strong>Rule #1:</strong> Do NOT reimage immediately. Every piece of forensic evidence — Prefetch, event logs, SRUM, BAM, USN journal — lives on that disk. Collect first, wipe later.</div>
+  <div class="flow">
+    <div class="step"><span class="step-n">1</span><span class="step-l">Quarantine host via Velociraptor</span></div>
+    <div class="step"><span class="step-n">2</span><span class="step-l">Snapshot volatile state (pslist, netstat)</span></div>
+    <div class="step"><span class="step-n">3</span><span class="step-l">Identify ransom note filename/extension</span></div>
+    <div class="step"><span class="step-n">4</span><span class="step-l">Scope: which hosts are affected?</span></div>
+    <div class="step"><span class="step-n">5</span><span class="step-l">Preserve: do NOT power off yet</span></div>
+  </div>
+
+  <div class="h3">Step 1A — Quarantine the Host (Velociraptor Action)</div>
+  <div class="p">In the Velociraptor GUI: Client → <strong>Collected Artifacts</strong> → Collect <code>Windows.Remediation.Quarantine</code>. This blocks all inbound/outbound traffic except the Velociraptor server connection — you keep remote access for investigation.</div>
+
+  <div class="h3">Step 1B — Snapshot Volatile Evidence</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Ransomware — volatile snapshot (run immediately on affected host)</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'pb1r1')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Step 1: Capture running processes — look for encryptor binary</span>
+<span class="kw">SELECT</span> Pid, Ppid, Name, Exe, CommandLine, Username, CreateTime
+<span class="kw">FROM</span> <span class="fn">pslist</span>()
+<span class="kw">WHERE</span> NOT Name <span class="kw">=~</span> <span class="str">"svchost|System|chrome|explorer|velociraptor"</span>
+<span class="kw">ORDER BY</span> CreateTime <span class="kw">DESC</span>
+<button class="copy-btn">Copy</button></div>
+      <div class="vql-result" id="pb1r1"><table class="vt">
+        <tr><th>Pid</th><th>Ppid</th><th>Name</th><th>Exe</th><th>CreateTime</th></tr>
+        <tr><td>9142</td><td>1</td><td style="color:#c04040;font-weight:700">lockbit3.exe</td><td>C:\ProgramData\lockbit3.exe</td><td>2025-03-24 02:13:44</td></tr>
+        <tr><td>8901</td><td>9142</td><td>cmd.exe</td><td>C:\Windows\System32\cmd.exe</td><td>2025-03-24 02:13:41</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h2">Phase 2 — Identify Initial Access Vector (10–40 min)</div>
+  <div class="p">Ransomware actors average <strong>4–5 days dwell time</strong> before deploying the encryptor. The initial access event is almost never the encryption event. You need to work backwards from the encrypted system to find patient zero.</div>
+
+  <div class="h3">Step 2A — Find the Encryptor Binary in Execution History</div>
+  <div class="cb"><span class="cmt">-- Prefetch: confirm execution and find first/last run of the encryptor</span>
+<span class="kw">SELECT</span> Name, FullPath, LastRunTimes, RunCount
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Prefetch</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"lockbit|encrypt|ransom|crypt"</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 2B — Check Event Logs for Initial Access (RDP / Phishing / Exploit)</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Find external RDP logons in the 7 days before encryption</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'pb1r2')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Hunt for external RDP logons (Type 10) — pivot from encryption time backwards</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       EventData.LogonType
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span>
+  <span class="kw">AND</span> EventData.LogonType = <span class="str">"10"</span>
+  <span class="kw">AND</span> NOT EventData.IpAddress <span class="kw">=~</span> <span class="str">"^10\.|^192\.168\.|^172\.1[6-9]\.|^127\."</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">DESC</span>
+<button class="copy-btn">Copy</button></div>
+      <div class="vql-result" id="pb1r2"><table class="vt">
+        <tr><th>Time</th><th>User</th><th>SourceIP</th><th>LogonType</th></tr>
+        <tr><td style="color:#c04040">2025-03-19 23:41 UTC</td><td style="color:#c04040;font-weight:700">admin</td><td style="color:#c04040;font-weight:700">45.142.212.100</td><td>10 (RemoteInteractive)</td></tr>
+        <tr><td>2025-03-20 01:02 UTC</td><td>admin</td><td style="color:#c04040">45.142.212.100</td><td>10 (RemoteInteractive)</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 2C — Trace the Infection Path via SRUM & USN</div>
+  <div class="cb"><span class="cmt">-- USN Journal: find mass rename events — ransomware renames every encrypted file</span>
+<span class="kw">SELECT</span> FileName, Reason, Timestamp
+<span class="kw">FROM</span> <span class="fn">parse_usn</span>(device=<span class="str">"\\\.\\C:"</span>)
+<span class="kw">WHERE</span> Reason <span class="kw">=~</span> <span class="str">"RENAME"</span>
+  <span class="kw">AND</span> Timestamp > <span class="str">"2025-03-24T02:00:00Z"</span>
+<span class="kw">LIMIT</span> 1000
+<span class="cmt">-- Expect thousands of RENAME_NEW_NAME entries — that's the encryption wave</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h2">Phase 3 — Scope the Blast Radius (40–70 min)</div>
+  <div class="h3">Step 3A — Fleet Hunt: Which Hosts Have the Encryptor?</div>
+  <div class="cb"><span class="cmt">-- Hunt across ALL endpoints for ransom note filename</span>
+<span class="cmt">-- Create a Hunt: Artifact = Generic.Detection.Yara, set rule below</span>
+<span class="kw">LET</span> YaraRule = <span class="str">'''
+rule RansomNote {
+  strings:
+    $a = "YOUR FILES HAVE BEEN ENCRYPTED" nocase
+    $b = "to recover your files" nocase
+    $c = ".onion" nocase
+  condition: 2 of them
+}
+'''</span>
+<span class="kw">SELECT</span> FullPath, Rule <span class="kw">FROM</span> <span class="fn">yara</span>(
+  rules=YaraRule,
+  files=<span class="str">"C:/**/*.txt"</span>
+)
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 3B — Check for Data Exfiltration Before Encryption</div>
+  <div class="cb"><span class="cmt">-- SRUM: identify large data uploads in the days before encryption</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.SRUM</span>()
+<span class="kw">WHERE</span> BytesSent > <span class="str">10000000</span>  <span class="cmt">-- > 10MB sent</span>
+  <span class="kw">AND</span> Timestamp > <span class="str">"2025-03-17T00:00:00Z"</span>
+<span class="kw">ORDER BY</span> BytesSent <span class="kw">DESC</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h2">Phase 4 — Hunt Persistence & Backdoors (70–90 min)</div>
+  <div class="banner"><strong>Critical:</strong> Ransomware actors almost always leave backdoors. Before recovery begins, you must confirm all footholds are removed. These hunts run across the entire fleet simultaneously.</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Hunt Target</th><th>Artifact</th><th>What to Look For</th></tr>
+    <tr><td>Scheduled Tasks</td><td><code>Windows.System.ScheduledTasks</code></td><td>Tasks created during the attacker's dwell period, especially running from Temp/AppData</td></tr>
+    <tr><td>Startup Persistence</td><td><code>Windows.Sys.StartupItems</code></td><td>New Run keys with encoded commands or unusual paths</td></tr>
+    <tr><td>New Services</td><td><code>Windows.System.Services</code></td><td>Services installed during intrusion window (correlate with Event 7045)</td></tr>
+    <tr><td>Backdoor Accounts</td><td>Event 4720 + 4732</td><td>Accounts created and added to Administrators group</td></tr>
+    <tr><td>Remaining Malware</td><td><code>Generic.Detection.Yara</code></td><td>YARA scan for ransomware family signatures across all disks</td></tr>
+  </table></div>
+
+  <div class="card" style="border-left:3px solid var(--teal);margin-top:10px">
+    <div class="card-title"><span class="ct ct-t">📋</span> Ransomware Initial Access — Common Vectors (SANS FOR528)</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Vector</th><th>Detection Artifacts</th><th>Key Event IDs</th></tr>
+      <tr><td><span class="pill p-r">RDP Brute Force</span></td><td>Security.evtx, TerminalServices logs</td><td>4625 (failed) → 4624 Type 10 (success) from same external IP</td></tr>
+      <tr><td><span class="pill p-o">Phishing / Maldoc</span></td><td>Outlook.pst, Zone.Identifier ADS, Prefetch</td><td>4688: office app → powershell/cmd child process</td></tr>
+      <tr><td><span class="pill p-r">VPN / Edge Exploit</span></td><td>Web/firewall logs, IIS logs, process parent chain</td><td>Web process (w3wp.exe/nginx) spawning cmd.exe as child</td></tr>
+      <tr><td><span class="pill p-b">Valid Credentials</span></td><td>4648 (explicit creds), 4624 Type 3 from unusual source</td><td>Authentication from new/unusual geographic location</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ── PLAYBOOK 2: Lateral Movement ── -->
+<div id="pb2" class="sp">
+  <div class="banner"><strong>Scenario:</strong> Your EDR flags suspicious PowerShell execution on WIN-WS042. You need to determine if the attacker has moved to other systems and map the full scope of the compromise.</div>
+
+  <div class="h2">Investigation Workflow</div>
+  <div class="flow">
+    <div class="step"><span class="step-n">1</span><span class="step-l">Triage patient zero</span></div>
+    <div class="step"><span class="step-n">2</span><span class="step-l">Find credential theft</span></div>
+    <div class="step"><span class="step-n">3</span><span class="step-l">Map all logons from that account</span></div>
+    <div class="step"><span class="step-n">4</span><span class="step-l">Hunt destination hosts</span></div>
+    <div class="step"><span class="step-n">5</span><span class="step-l">Find persistence on each hop</span></div>
+    <div class="step"><span class="step-n">6</span><span class="step-l">Scope full blast radius</span></div>
+  </div>
+
+  <div class="h3">Step 1 — Triage Patient Zero: Map Process Execution Chain</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Lateral Movement — full process execution chain with parent/child relationships</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'pb2r1')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Build a process tree: find suspicious parent-child chains</span>
+<span class="kw">LET</span> procs = <span class="kw">SELECT</span> Pid, Ppid, Name, Exe, CommandLine, Username, CreateTime
+             <span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.ProcessHistory</span>()
+
+<span class="kw">SELECT</span> p.CreateTime, p.Name, p.CommandLine, p.Username,
+       parent.Name <span class="kw">AS</span> ParentName, parent.CommandLine <span class="kw">AS</span> ParentCmd
+<span class="kw">FROM</span> procs p
+<span class="kw">JOIN</span> procs parent <span class="kw">ON</span> p.Ppid = parent.Pid
+<span class="kw">WHERE</span> p.Name <span class="kw">=~</span> <span class="str">"powershell|cmd|wscript|mshta|rundll32"</span>
+  <span class="kw">AND</span> parent.Name <span class="kw">=~</span> <span class="str">"winword|excel|outlook|explorer"</span>
+<button class="copy-btn">Copy</button></div>
+      <div class="vql-result" id="pb2r1"><table class="vt">
+        <tr><th>Time</th><th>Name</th><th>CommandLine</th><th>ParentName</th></tr>
+        <tr><td>2025-03-24 09:12</td><td style="color:#c04040;font-weight:700">powershell.exe</td><td style="color:#c04040">-enc SQBFAFgAIAAoAE4AZQB3...</td><td style="color:var(--warn)">winword.exe</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 2 — Identify Credential Theft</div>
+  <div class="cb"><span class="cmt">-- Hunt for LSASS access events (credential dumping attempt)</span>
+<span class="kw">SELECT</span> System.TimeCreated, EventData.SubjectUserName <span class="kw">AS</span> Accessor,
+       EventData.TargetProcessName, EventData.GrantedAccess
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">10</span>  <span class="cmt">-- Sysmon: Process Access</span>
+  <span class="kw">AND</span> EventData.TargetProcessName <span class="kw">=~</span> <span class="str">"lsass"</span>
+  <span class="kw">AND</span> EventData.GrantedAccess <span class="kw">=~</span> <span class="str">"0x1010|0x1410|0x143a"</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 3 — Fleet Hunt: Track Compromised Account Across All Hosts</div>
+  <div class="cb"><span class="cmt">-- Hunt: Where has 'jsmith' authenticated across the entire fleet?</span>
+<span class="cmt">-- Run this as a HUNT across all Windows endpoints</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       EventData.LogonType,
+       System.Computer <span class="kw">AS</span> DestHost
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span>
+  <span class="kw">AND</span> EventData.TargetUserName = <span class="str">"jsmith"</span>
+  <span class="kw">AND</span> EventData.LogonType <span class="kw">=~</span> <span class="str">"^3$|^10$"</span>
+<span class="kw">ORDER BY</span> Time
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 4 — Confirm Lateral Movement via BAM/DAM on Destination Hosts</div>
+  <div class="cb"><span class="cmt">-- On destination hosts: confirm attacker tools executed under jsmith's SID</span>
+<span class="kw">SELECT</span> BinaryPath, LastRunTime, UserSID
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Bam</span>()
+<span class="kw">WHERE</span> BinaryPath <span class="kw">=~</span> <span class="str">"(?i)(mimikatz|psexec|cobalt|beacon|meterpreter|net\.exe)"</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="card" style="margin-top:14px;border-left:3px solid var(--orange)">
+    <div class="card-title"><span class="ct ct-o">🗺</span> Lateral Movement Evidence Correlation Matrix</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Technique</th><th>Source Host Evidence</th><th>Destination Host Evidence</th></tr>
+      <tr><td>PSExec</td><td>Prefetch: psexec.exe · Event 4648 (explicit creds)</td><td>Event 7045 (PSEXESVC service) · Event 4624 Type 3</td></tr>
+      <tr><td>RDP</td><td>mstsc.exe Prefetch · JumpLists · Event 1024/1102</td><td>Event 4624 Type 10 · Event 21/22 (LocalSessionMgr)</td></tr>
+      <tr><td>WMI</td><td>wmic.exe Prefetch · Event 4648</td><td>WmiPrvSE.exe child processes · WMI activity log</td></tr>
+      <tr><td>Pass-the-Hash</td><td>Event 4648 (NTLM creds) · Mimikatz Prefetch</td><td>Event 4624 Type 3 with NTLM auth package · Event 4776</td></tr>
+      <tr><td>SMB Share Copy</td><td>net.exe/net1.exe Prefetch · MountPoints2 registry</td><td>File creation time ≠ modified time · Event 5140</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ── PLAYBOOK 3: Memory & Beacon Hunt ── -->
+<div id="pb3" class="sp">
+  <div class="banner"><strong>Scenario:</strong> Threat intelligence reports that your sector is being targeted with Cobalt Strike. You need to hunt for in-memory beacons across your fleet without relying on file-based indicators — the payload may never touch disk.</div>
+
+  <div class="h2">In-Memory Threat Hunting Strategy</div>
+  <div class="banner-teal"><strong>Why memory?</strong> Advanced attackers use fileless techniques — shellcode injected directly into legitimate process memory, loaded via reflective DLL injection. There is no file on disk to scan. YARA on process memory is your primary detection mechanism.</div>
+
+  <div class="h3">Step 1 — Fleet YARA Scan: Hunt Cobalt Strike Beacon in Memory</div>
+  <div class="cb"><span class="cmt">-- Deploy as a HUNT to all Windows endpoints</span>
+<span class="cmt">-- Artifact: Windows.Detection.Yara.Process</span>
+<span class="kw">LET</span> CSBeaconRules = <span class="str">'''
+rule CobaltStrike_Beacon_ReflectiveLoader {
+  strings:
+    $loader = "ReflectiveLoader" ascii
+    $mz     = { 4D 5A }
+    $jmp    = { FC 48 83 E4 F0 E8 }
+  condition: ($loader or $jmp) and $mz
+}
+
+rule CobaltStrike_Config_Pattern {
+  strings:
+    $c2_pattern = { 2E 2E 2E 00 00 00 00 00 00 00 00 00 00 00 00 00 }
+    $beacon_dll = "beacon.dll" ascii
+  condition: any of them
+}
+'''</span>
+
+<span class="kw">SELECT</span> Pid, Name, Rule, String.Offset <span class="kw">AS</span> Offset
+<span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>()
+        <span class="kw">WHERE</span> NOT Name <span class="kw">=~</span> <span class="str">"^(System|Idle|smss|csrss|wininit)$"</span> },
+  query={ <span class="kw">SELECT</span> Pid, Name, Rule, String
+          <span class="kw">FROM</span> <span class="fn">yara</span>(rules=CSBeaconRules, pid=Pid) }
+)
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 2 — Detect Process Injection Indicators</div>
+  <div class="cb"><span class="cmt">-- Hunt for processes with suspicious memory characteristics</span>
+<span class="cmt">-- Executable memory in non-image backed regions = injection indicator</span>
+<span class="kw">SELECT</span> Pid, Name, BaseAddress, RegionSize, State, Type, Protect
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Memory.VAD</span>()
+<span class="kw">WHERE</span> Protect <span class="kw">=~</span> <span class="str">"EXECUTE_READWRITE"</span>
+  <span class="kw">AND</span> Type = <span class="str">"Private"</span>  <span class="cmt">-- not backed by a file on disk</span>
+  <span class="kw">AND</span> RegionSize > <span class="str">4096</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 3 — Identify Beaconing via DNS Query Patterns</div>
+  <div class="cb"><span class="cmt">-- CLIENT_EVENT: monitor DNS queries for C2 beaconing patterns</span>
+<span class="cmt">-- Deploy Windows.Events.DNSQueries as a CLIENT_EVENT artifact</span>
+<span class="kw">SELECT</span> Timestamp, ProcessName, QueryName, QueryType, QueryResults
+<span class="kw">FROM</span> <span class="fn">watch_monitoring</span>(artifact=<span class="str">"Windows.Events.DNSQueries"</span>)
+<span class="kw">WHERE</span> NOT QueryName <span class="kw">=~</span> <span class="str">"microsoft|windows|office|google|amazon|apple"</span>
+  <span class="kw">AND</span> ProcessName <span class="kw">=~</span> <span class="str">"svchost|explorer|rundll32|regsvr32"</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 4 — Network C2 Detection: Beaconing Intervals</div>
+  <div class="cb"><span class="cmt">-- Identify regular-interval connections (beacon jitter pattern)</span>
+<span class="kw">LET</span> connections = <span class="kw">SELECT</span> Timestamp, RemoteAddress, RemotePort, Pid, Name
+  <span class="kw">FROM</span> <span class="fn">watch_monitoring</span>(artifact=<span class="str">"Windows.Events.NetworkSummary"</span>)
+  <span class="kw">WHERE</span> NOT RemoteAddress <span class="kw">=~</span> <span class="str">"^10\.|^192\.168\.|^172\.1[6-9]\."</span>
+
+<span class="cmt">-- Group by destination to find regular repeat connections</span>
+<span class="kw">SELECT</span> RemoteAddress, RemotePort, Name, count() <span class="kw">AS</span> ConnectionCount,
+       min(Timestamp) <span class="kw">AS</span> FirstSeen, max(Timestamp) <span class="kw">AS</span> LastSeen
+<span class="kw">FROM</span> connections
+<span class="kw">GROUP BY</span> RemoteAddress, RemotePort, Name
+<span class="kw">HAVING</span> ConnectionCount > <span class="str">5</span>
+<span class="kw">ORDER BY</span> ConnectionCount <span class="kw">DESC</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="card-title"><span class="ct ct-b">🔍</span> Memory Analysis Tools Ecosystem</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Tool</th><th>Role</th><th>Velociraptor Integration</th></tr>
+      <tr><td><strong>WinPmem</strong></td><td>Raw memory acquisition (same team as Velociraptor)</td><td>Built into Velociraptor as <code>Windows.Memory.Acquisition</code></td></tr>
+      <tr><td><strong>Volatility 3</strong></td><td>Offline memory analysis (pslist, malfind, netscan)</td><td>Run against WinPmem dumps; use <code>tools:</code> in artifact to ship Volatility</td></tr>
+      <tr><td><strong>MemProcFS</strong></td><td>Mount memory as a filesystem for interactive analysis</td><td>Post-collection offline tool on analyst workstation</td></tr>
+      <tr><td><strong>Moneta</strong></td><td>Live process memory scanning for anomalies</td><td>Ship via <code>tools:</code> block and execute via VQL <code>execve()</code></td></tr>
+      <tr><td><strong>Hollows Hunter</strong></td><td>Detect process hollowing and injection live</td><td>Ship via <code>tools:</code> block; wrap output with VQL parsing</td></tr>
+    </table></div>
+  </div>
+</div>
+`;}
+
+/* ═══════════════════════════════════════════════════════
+   LAB & PRACTICE RANGE SETUP
+═══════════════════════════════════════════════════════ */
+function paneLabSetup(){return`
+<div class="banner"><strong>You cannot learn DFIR by reading alone.</strong> You need to generate real telemetry, see what malicious activity looks like in Velociraptor, and practice on systems you are allowed to break. This section builds your personal practice range from scratch.</div>
+
+<div id="lab-tabs" class="tab-bar">
+  <button class="tab active" data-target="lab1">🏗 Architecture</button>
+  <button class="tab" data-target="lab2">💻 VM Setup</button>
+  <button class="tab" data-target="lab3">⚡ Atomic Red Team</button>
+  <button class="tab" data-target="lab4">🔬 Practice Scenarios</button>
+</div>
+
+<div id="lab1" class="sp active">
+  <div class="h2">Lab Architecture Overview</div>
+  <div class="card">
+    <div style="display:flex;align-items:stretch;gap:4px;flex-wrap:wrap">
+      <div class="arch-box" style="background:rgba(232,131,10,.1);border:1px solid rgba(232,131,10,.25)">
+        <div class="ab-t" style="color:var(--orange)">Analyst Workstation</div>
+        <div class="ab-s">Your main machine<br>Browser → Velociraptor GUI<br>:8889</div>
+      </div>
+      <div class="arch-arrow">⇔</div>
+      <div class="arch-box" style="background:rgba(26,171,138,.1);border:1px solid rgba(26,171,138,.25)">
+        <div class="ab-t" style="color:var(--teal)">Velociraptor Server VM</div>
+        <div class="ab-s">Ubuntu 22.04<br>2 CPU, 4GB RAM<br>OR: use "gui" mode locally</div>
+      </div>
+      <div class="arch-arrow">⇔</div>
+      <div class="arch-box" style="background:rgba(200,40,40,.1);border:1px solid rgba(200,40,40,.25)">
+        <div class="ab-t" style="color:#c04040">Windows Victim VM</div>
+        <div class="ab-s">Windows 10/11 eval<br>Velociraptor client<br>Atomic Red Team</div>
+      </div>
+      <div class="arch-arrow">⇔</div>
+      <div class="arch-box" style="background:rgba(26,83,200,.1);border:1px solid rgba(26,83,200,.25)">
+        <div class="ab-t" style="color:#4a8fff">Linux Victim VM</div>
+        <div class="ab-s">Ubuntu 22.04<br>Velociraptor client<br>Optional</div>
+      </div>
+    </div>
+  </div>
+  <div class="p">All VMs should be on the same host-only or NAT network. Use VirtualBox or VMware Workstation/Fusion. A Windows evaluation license is free from Microsoft for 90 days and sufficient for practice.</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Component</th><th>Minimum Spec</th><th>Notes</th></tr>
+    <tr><td>Velociraptor Server</td><td>2 vCPU, 4GB RAM, 40GB disk</td><td>Ubuntu 22.04 LTS recommended. Can reuse analyst machine for "instant GUI" mode.</td></tr>
+    <tr><td>Windows Victim VM</td><td>2 vCPU, 4GB RAM, 60GB disk</td><td>Windows 10 Enterprise Evaluation (free 90-day from Microsoft). Enable: Prefetch, Audit Policy, PowerShell Logging.</td></tr>
+    <tr><td>Host Machine</td><td>16GB RAM, 4+ cores</td><td>Needed to run 2–3 VMs simultaneously comfortably.</td></tr>
+  </table></div>
+</div>
+
+<div id="lab2" class="sp">
+  <div class="h2">Step-by-Step VM Setup</div>
+  <div class="h3">1 — Get a Free Windows Evaluation VM</div>
+  <div class="cb"><span class="cmt"># Download Windows 10 Enterprise Evaluation (90 days free)</span>
+https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise
+
+<span class="cmt"># Or use Microsoft's pre-built Hyper-V / VirtualBox images</span>
+https://developer.microsoft.com/en-us/windows/downloads/virtual-machines/
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">2 — Install Velociraptor in "Instant GUI" Mode (Quickest Start)</div>
+  <div class="cb"><span class="cmt"># On your analyst machine or a dedicated Linux VM</span>
+<span class="cmt"># Download latest binary from GitHub Releases</span>
+wget https://github.com/Velocidex/velociraptor/releases/latest/download/velociraptor-linux-amd64
+
+chmod +x velociraptor-linux-amd64
+
+<span class="cmt"># Launch: opens browser at https://localhost:8889</span>
+./velociraptor-linux-amd64 gui
+
+<span class="cmt"># For Windows analyst machine:</span>
+velociraptor-windows-amd64.exe gui
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">3 — Enable Critical Audit Policies on the Windows Victim VM</div>
+  <div class="cb"><span class="cmt"># Run in elevated PowerShell on the Windows Victim VM</span>
+<span class="cmt"># Enable process creation auditing (Event 4688 + command line)</span>
+auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
+
+<span class="cmt"># Enable PowerShell Script Block Logging (Event 4104)</span>
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f
+
+<span class="cmt"># Enable PowerShell Module Logging (Event 4103)</span>
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 /f
+
+<span class="cmt"># Increase Security log size to 1GB to retain more events</span>
+wevtutil sl Security /ms:1073741824
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">4 — Deploy Velociraptor Client on the Windows VM</div>
+  <div class="cb"><span class="cmt"># In the Velociraptor GUI (https://localhost:8889)</span>
+<span class="cmt"># Go to: Server Artifacts → Server.Utils.CreateCollector</span>
+<span class="cmt"># OR for instant GUI mode, the client is already built-in</span>
+
+<span class="cmt"># For client-server setup, download client.config.yaml from GUI</span>
+<span class="cmt"># Then on the Windows victim VM (Admin PowerShell):</span>
+velociraptor.exe --config client.config.yaml service install
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">5 — Take a VM Snapshot Before Generating Telemetry</div>
+  <div class="banner-teal"><strong>Golden Rule:</strong> Always snapshot your VMs before running attack simulations. This lets you revert to a clean state and repeat the exercise. Name your snapshots descriptively: "Clean-Baseline-With-Client".</div>
+</div>
+
+<div id="lab3" class="sp">
+  <div class="banner"><strong>Atomic Red Team</strong> by Red Canary is a library of small, portable tests mapped to MITRE ATT&CK. Each test simulates a specific attacker technique in a safe, controlled way — generating real telemetry you can investigate in Velociraptor.</div>
+
+  <div class="h3">Install Atomic Red Team on the Windows Victim VM</div>
+  <div class="cb"><span class="cmt"># Admin PowerShell on the Windows victim VM</span>
+
+<span class="cmt"># Install the Invoke-AtomicRedTeam framework</span>
+Install-Module -Name invoke-atomicredteam,powershell-yaml -Scope CurrentUser -Force
+
+<span class="cmt"># Download the atomic tests library</span>
+IEX (IWR 'https://raw.githubusercontent.com/redcanaryco/invoke-atomicredteam/master/install-atomicredteam.ps1' -UseBasicParsing)
+Install-AtomicRedTeam -getAtomics -Force
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Practice Scenarios — Generate Specific Telemetry</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>ATT&CK Technique</th><th>Atomic Test</th><th>What it generates for Velociraptor</th></tr>
+    <tr><td>T1059.001 PowerShell</td><td><code>Invoke-AtomicTest T1059.001 -TestNumbers 1</code></td><td>PowerShell Event 4104 (script block) · Prefetch for powershell.exe</td></tr>
+    <tr><td>T1053.005 Scheduled Task</td><td><code>Invoke-AtomicTest T1053.005 -TestNumbers 1</code></td><td>Event 4698 (task created) · Windows.System.ScheduledTasks artifact</td></tr>
+    <tr><td>T1547.001 Registry Run Key</td><td><code>Invoke-AtomicTest T1547.001 -TestNumbers 1</code></td><td>Registry modification · Windows.Sys.StartupItems artifact</td></tr>
+    <tr><td>T1003.001 LSASS Dump</td><td><code>Invoke-AtomicTest T1003.001 -TestNumbers 1</code></td><td>Sysmon Event 10 (process access to lsass) · procdump.exe Prefetch</td></tr>
+    <tr><td>T1021.001 RDP</td><td><code>Invoke-AtomicTest T1021.001 -TestNumbers 1</code></td><td>Event 4624 Type 10 · mstsc.exe in BAM/DAM · TerminalServices logs</td></tr>
+    <tr><td>T1070.001 Clear Logs</td><td><code>Invoke-AtomicTest T1070.001 -TestNumbers 1</code></td><td>Event 1102 (log cleared) — practice detecting anti-forensics</td></tr>
+    <tr><td>T1055 Process Injection</td><td><code>Invoke-AtomicTest T1055 -TestNumbers 1</code></td><td>Memory anomaly in VAD · YARA hit on injected process</td></tr>
+    <tr><td>T1136.001 Create Account</td><td><code>Invoke-AtomicTest T1136.001 -TestNumbers 1</code></td><td>Event 4720 (user created) · Event 4732 (added to group)</td></tr>
+  </table></div>
+
+  <div class="h3">Run a Full Practice Exercise — Simulate an Intrusion Chain</div>
+  <div class="cb"><span class="cmt"># Simulate a realistic attack chain in sequence on the victim VM</span>
+<span class="cmt"># Each command generates real forensic artifacts — then hunt them in Velociraptor</span>
+
+<span class="cmt"># 1. Initial foothold via scheduled task persistence</span>
+Invoke-AtomicTest T1053.005 -TestNumbers 1
+
+<span class="cmt"># 2. Credential access via LSASS</span>
+Invoke-AtomicTest T1003.001 -TestNumbers 2
+
+<span class="cmt"># 3. Registry run key persistence</span>
+Invoke-AtomicTest T1547.001 -TestNumbers 1
+
+<span class="cmt"># 4. Log clearing (anti-forensics)</span>
+Invoke-AtomicTest T1070.001 -TestNumbers 1
+
+<span class="cmt"># Now switch to Velociraptor and investigate!</span>
+<span class="cmt"># What do the artifacts show? What survived the log clear?</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Cleanup After Each Test</div>
+  <div class="cb"><span class="cmt"># Atomic Red Team includes cleanup for each test</span>
+Invoke-AtomicTest T1053.005 -TestNumbers 1 -Cleanup
+Invoke-AtomicTest T1003.001 -TestNumbers 2 -Cleanup
+
+<span class="cmt"># Or just revert to your VM snapshot</span>
+<button class="copy-btn">Copy</button></div>
+</div>
+
+<div id="lab4" class="sp">
+  <div class="h2">Practice Investigation Exercises</div>
+  <div class="banner-teal"><strong>Challenge format:</strong> Each exercise gives you a scenario and a set of questions. Generate the telemetry with Atomic Red Team, then use Velociraptor to answer the questions. Answers are in the accordions.</div>
+
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>🔴 Exercise 1 — "Find the Persistence"</span><span class="acc-arr">›</span></div><div class="acc-b">
+    <strong>Setup:</strong> Run <code>Invoke-AtomicTest T1053.005 -TestNumbers 1</code> and <code>Invoke-AtomicTest T1547.001 -TestNumbers 1</code> on your victim VM.<br><br>
+    <strong>Questions:</strong><br>
+    1. What is the full command run by the scheduled task?<br>
+    2. What registry key was modified for the run key persistence?<br>
+    3. Can you find the event IDs that prove each persistence mechanism was installed?<br><br>
+    <strong>Velociraptor Artifacts to Use:</strong><br>
+    • <code>Windows.System.ScheduledTasks</code> → find the malicious task<br>
+    • <code>Windows.Sys.StartupItems</code> → find the run key<br>
+    • <code>Windows.EventLogs.EvtxHunter</code> with EventID 4698 and 4657<br><br>
+    <strong>Key VQL:</strong><br>
+    <code>SELECT * FROM Artifact.Windows.System.ScheduledTasks() WHERE Command =~ "atomic"</code>
+  </div></div>
+
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>🟠 Exercise 2 — "Reconstruct the Timeline"</span><span class="acc-arr">›</span></div><div class="acc-b">
+    <strong>Setup:</strong> Run 3 different Atomic Red Team tests, then run <code>Invoke-AtomicTest T1070.001 -TestNumbers 1</code> to clear the Security event log.<br><br>
+    <strong>Questions:</strong><br>
+    1. The Security event log is empty — which other artifacts still prove activity occurred?<br>
+    2. Can you establish an execution timeline using only Prefetch and BAM?<br>
+    3. What evidence in the MFT or USN journal survived the log clear?<br><br>
+    <strong>Lesson:</strong> This exercise teaches you that attackers who clear event logs do not erase all evidence. Prefetch, BAM, Amcache, ShimCache, SRUM, and NTFS metadata all survive.<br><br>
+    <code>SELECT Name, LastRunTimes FROM Artifact.Windows.Forensics.Prefetch()</code>
+  </div></div>
+
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>🟡 Exercise 3 — "Hunt the Injected Process"</span><span class="acc-arr">›</span></div><div class="acc-b">
+    <strong>Setup:</strong> Run <code>Invoke-AtomicTest T1055 -TestNumbers 1</code> (process injection test).<br><br>
+    <strong>Questions:</strong><br>
+    1. Which process was injected into?<br>
+    2. Can you find the injection with a YARA scan?<br>
+    3. What VAD (Virtual Address Descriptor) flags reveal the injected memory region?<br><br>
+    <strong>Velociraptor Approach:</strong><br>
+    • Collect <code>Windows.Detection.Yara.Process</code> with a generic shellcode rule<br>
+    • Review <code>Windows.Memory.VAD</code> for EXECUTE_READWRITE private regions<br><br>
+    <code>SELECT * FROM Artifact.Windows.Memory.VAD() WHERE Protect =~ "EXECUTE_READWRITE" AND Type = "Private"</code>
+  </div></div>
+
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>🔵 Exercise 4 — "The Full Chain" (Advanced)</span><span class="acc-arr">›</span></div><div class="acc-b">
+    <strong>Setup:</strong> Without telling yourself which tests you ran, have a colleague or script run 4–5 Atomic Red Team tests. Then investigate from scratch using only Velociraptor.<br><br>
+    <strong>Challenge:</strong> Produce a written timeline with:<br>
+    1. The first malicious action (timestamp + evidence source)<br>
+    2. All persistence mechanisms installed<br>
+    3. Any credential access attempts<br>
+    4. The full list of artifacts that contain evidence<br><br>
+    <strong>This is as close to a real incident as a lab can simulate.</strong> The discipline of documenting your findings in a Velociraptor Notebook as you go builds the muscle memory needed for real IR work.
+  </div></div>
+</div>
+`;}
+
+/* ═══════════════════════════════════════════════════════
+   ENTERPRISE DEPLOYMENT
+═══════════════════════════════════════════════════════ */
+function paneEnterprise(){return`
+<div id="ent-tabs" class="tab-bar">
+  <button class="tab active" data-target="et1">Intune / GPO Deploy</button>
+  <button class="tab" data-target="et2">EDR Exclusions</button>
+  <button class="tab" data-target="et3">Cloud Server Setup</button>
+  <button class="tab" data-target="et4">Hardening</button>
+  <button class="tab" data-target="et5">Multi-Org / MSSP</button>
+  <button class="tab" data-target="et6">Uninstall & Cleanup</button>
+</div>
+
+<!-- INTUNE / GPO -->
+<div id="et1" class="sp active">
+  <div class="banner"><strong>Enterprise deployment</strong> means pushing a signed, configured Velociraptor client to thousands of endpoints silently, without end-user interaction, and without breaking existing security tooling.</div>
+
+  <div class="h2">Deployment via Microsoft Intune (Recommended for Azure AD / M365)</div>
+  <div class="h3">Step 1 — Build the MSI Package</div>
+  <div class="cb"><span class="cmt"># On your Velociraptor server — generate a repacked MSI with embedded client config</span>
+<span class="cmt"># First generate your server and client configs</span>
+velociraptor config generate -i
+<span class="cmt"># Creates: server.config.yaml and client.config.yaml</span>
+
+<span class="cmt"># Repack the client binary with the config embedded</span>
+velociraptor config repack --exe velociraptor-windows-amd64.exe \
+  client.config.yaml velociraptor_client_signed.exe
+
+<span class="cmt"># Or generate a proper MSI for Intune/SCCM deployment</span>
+velociraptor config repack --msi velociraptor-windows-amd64.msi \
+  client.config.yaml velociraptor_client.msi
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 2 — Deploy via Microsoft Intune</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Step</th><th>Intune Action</th><th>Notes</th></tr>
+    <tr><td>1</td><td>Devices → Windows → Apps → Add → Line-of-business app</td><td>Upload your velociraptor_client.msi or .exe</td></tr>
+    <tr><td>2</td><td>App Information: Set name, publisher, version</td><td>Use semantic versioning to track rollouts</td></tr>
+    <tr><td>3</td><td>Program: Install cmd = <code>msiexec /i velociraptor_client.msi /quiet</code></td><td>Uninstall cmd = <code>msiexec /x velociraptor_client.msi /quiet</code></td></tr>
+    <tr><td>4</td><td>Detection Rule: File exists — <code>C:\Program Files\Velociraptor\velociraptor.exe</code></td><td>Or check for service "velociraptor" in HKLM\SYSTEM\...\Services</td></tr>
+    <tr><td>5</td><td>Assignments: Deploy to device group</td><td>Stage to pilot group first, then ring-based rollout</td></tr>
+    <tr><td>6</td><td>Monitor: Device install status dashboard</td><td>Expect ~15–30 min for first check-in after install</td></tr>
+  </table></div>
+
+  <div class="h3">Step 3 — Deploy via Group Policy (On-Prem AD)</div>
+  <div class="cb"><span class="cmt"># Copy MSI to a network share accessible by all computers</span>
+\\dc01\NETLOGON\velociraptor\velociraptor_client.msi
+
+<span class="cmt"># Group Policy: Computer Configuration → Software Settings → Software Installation</span>
+<span class="cmt"># Add Package → browse to MSI → Assigned (installs at computer startup)</span>
+<span class="cmt"># Target with WMI filter for OS version if needed</span>
+
+<span class="cmt"># Alternatively, use GPO Startup Script (more control):</span>
+<span class="cmt"># Computer Config → Windows Settings → Scripts → Startup</span>
+<span class="cmt"># Script: install_velo.bat</span>
+@echo off
+if not exist "C:\Program Files\Velociraptor\velociraptor.exe" (
+  msiexec /i \\dc01\NETLOGON\velociraptor\velociraptor_client.msi /quiet /norestart
+)
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 4 — Deploy via SCCM / ConfigMgr</div>
+  <div class="cb"><span class="cmt"># Create Application in SCCM</span>
+<span class="cmt"># Software Library → Application Management → Applications → Create Application</span>
+<span class="cmt"># Detection Method: Windows Installer, Product Code from MSI</span>
+<span class="cmt"># Or: Registry key HKLM\SYSTEM\CurrentControlSet\Services\velociraptor</span>
+
+<span class="cmt"># Silent install command</span>
+msiexec.exe /i velociraptor_client.msi /quiet /norestart ALLUSERS=1
+
+<span class="cmt"># Deploy to collection: All Windows Workstations</span>
+<span class="cmt"># Purpose: Required (not Available) for automatic deployment</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 5 — Verify Deployment</div>
+  <div class="cb"><span class="cmt"># Verify service is running on an endpoint (Admin PowerShell)</span>
+Get-Service -Name velociraptor
+
+<span class="cmt"># Check client registered in Velociraptor GUI</span>
+<span class="cmt"># Search bar: hostname:WIN-WS001 — should appear within 60 seconds of service start</span>
+
+<span class="cmt"># VQL to find all clients NOT yet enrolled (run on server)</span>
+<span class="kw">SELECT</span> ClientId, os_info.hostname <span class="kw">AS</span> Hostname, last_seen_at
+<span class="kw">FROM</span> <span class="fn">clients</span>()
+<span class="kw">ORDER BY</span> last_seen_at <span class="kw">DESC</span>
+<button class="copy-btn">Copy</button></div>
+</div>
+
+<!-- EDR EXCLUSIONS -->
+<div id="et2" class="sp">
+  <div class="banner-red"><strong>Critical:</strong> Failing to add Velociraptor exclusions in your EDR/AV will result in quarantined binaries, blocked collections, and corrupted artifact results. This is the #1 cause of failed enterprise deployments. Configure exclusions BEFORE rollout.</div>
+
+  <div class="h2">Why Exclusions Are Needed</div>
+  <div class="p">Velociraptor performs behaviors that look identical to malware from an EDR's perspective: raw disk reads (bypassing the OS), direct registry hive access, process enumeration with low-level APIs, YARA scanning other processes, and network connections to unusual internal IPs. Without exclusions, your EDR will block collections mid-flight.</div>
+
+  <div class="h3">Path-Based Exclusions (Apply to ALL Security Products)</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Path to Exclude</th><th>Why</th></tr>
+    <tr><td><code>C:\Program Files\Velociraptor\velociraptor.exe</code></td><td>Main binary — will be flagged for raw disk access behaviors</td></tr>
+    <tr><td><code>C:\Program Files\Velociraptor\</code> (folder)</td><td>Entire install directory — config files and tools cached here</td></tr>
+    <tr><td><code>C:\Windows\Temp\velociraptor_*</code></td><td>Temporary working files during collections</td></tr>
+    <tr><td><code>C:\Users\*\AppData\Local\Temp\velociraptor_*</code></td><td>Per-user temp artifacts during offline collection</td></tr>
+    <tr><td>Velociraptor server IP:port (outbound)</td><td>Allow outbound TLS :8000 to server — classified as suspicious C2-like traffic</td></tr>
+  </table></div>
+
+  <div class="h3">Process-Based Exclusions</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Product</th><th>Exclusion Type</th><th>Value</th></tr>
+    <tr><td>Microsoft Defender</td><td>Process exclusion</td><td><code>C:\Program Files\Velociraptor\velociraptor.exe</code></td></tr>
+    <tr><td>CrowdStrike Falcon</td><td>Sensor exclusion (ML + behavioral)</td><td>Hash + path exclusion for velociraptor.exe; add IOA exclusion for raw disk access</td></tr>
+    <tr><td>SentinelOne</td><td>Exclusion policy → Process</td><td>velociraptor.exe + path. Also exclude "Suspicious Process Access to LSASS" for credential collection artifacts</td></tr>
+    <tr><td>Carbon Black</td><td>Allowlist via Policy</td><td>Application path: C:\Program Files\Velociraptor\ with "Allow all operations"</td></tr>
+    <tr><td>Cortex XDR</td><td>Exceptions profile</td><td>Process exception + network exception for server IP</td></tr>
+  </table></div>
+
+  <div class="h3">Microsoft Defender Exclusion via PowerShell / Intune</div>
+  <div class="cb"><span class="cmt"># Add Defender exclusions via PowerShell (run as Admin or via Intune script)</span>
+Add-MpPreference -ExclusionProcess "velociraptor.exe"
+Add-MpPreference -ExclusionPath "C:\Program Files\Velociraptor"
+Add-MpPreference -ExclusionPath "C:\Windows\Temp\velociraptor_*"
+
+<span class="cmt"># Verify exclusions are applied</span>
+Get-MpPreference | Select-Object ExclusionProcess, ExclusionPath
+
+<span class="cmt"># Via Intune: Endpoint Security → Antivirus → Create Policy</span>
+<span class="cmt"># Microsoft Defender Antivirus Exclusions → Process Exclusions → velociraptor.exe</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">CrowdStrike Falcon Exclusions</div>
+  <div class="cb"><span class="cmt"># CrowdStrike Falcon Console: Configuration → Prevention Policies</span>
+<span class="cmt"># ML Exclusions → Add exclusion:</span>
+<span class="cmt">#   Value: SHA256 hash of your velociraptor binary (from releases page)</span>
+<span class="cmt">#   Type: SHA256</span>
+
+<span class="cmt"># Configuration → IOA Exclusions → Add:</span>
+<span class="cmt">#   Name: Velociraptor Raw Disk Read</span>
+<span class="cmt">#   Rule Group: (your Windows prevention group)</span>
+<span class="cmt">#   Image: *velociraptor*</span>
+
+<span class="cmt"># Network → Custom IOA Rules → Add allowlist rule for server IP:8000</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="insight-box">
+    <div class="ib-label">💡 Best Practice: Verify Exclusions Before Fleet Rollout</div>
+    <div class="ib-text">After applying exclusions, test on a single canary endpoint: deploy the client, run a collection that accesses raw NTFS (<code>Windows.Forensics.Prefetch</code>), run a YARA scan (<code>Generic.Detection.Yara</code>), and verify the EDR did not alert or block. Only then proceed with fleet rollout.</div>
+  </div>
+</div>
+
+<!-- CLOUD SERVER SETUP -->
+<div id="et3" class="sp">
+  <div class="banner"><strong>Production Velociraptor servers</strong> should live in a cloud environment — accessible to remote clients, scalable, and protected by proper network controls. This section covers Azure setup (GCP is nearly identical).</div>
+
+  <div class="h2">Azure VM Setup for Velociraptor Server</div>
+  <div class="h3">Step 1 — Provision the VM</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Setting</th><th>Recommended Value</th><th>Notes</th></tr>
+    <tr><td>VM Size</td><td>Standard_D4s_v3 (4 vCPU, 16GB)</td><td>Supports 5,000–8,000 clients. Scale up for more.</td></tr>
+    <tr><td>OS</td><td>Ubuntu 22.04 LTS</td><td>Long-term support, well-tested with Velociraptor</td></tr>
+    <tr><td>Disk</td><td>Premium SSD 512GB+</td><td>Data store grows with artifact collection volume</td></tr>
+    <tr><td>Region</td><td>Closest to majority of clients</td><td>Reduces latency for client check-ins</td></tr>
+    <tr><td>Authentication</td><td>SSH public key only</td><td>Disable password auth immediately</td></tr>
+  </table></div>
+
+  <div class="h3">Step 2 — Network Security Group (Azure NSG) Rules</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Direction</th><th>Port</th><th>Protocol</th><th>Source</th><th>Purpose</th></tr>
+    <tr><td>Inbound</td><td>8000</td><td>TCP</td><td>Any (or client IP ranges)</td><td>Client-to-server mTLS communication</td></tr>
+    <tr><td>Inbound</td><td>8889</td><td>TCP</td><td>Analyst IP only</td><td>GUI access — RESTRICT to known analyst IPs</td></tr>
+    <tr><td>Inbound</td><td>8001</td><td>TCP</td><td>Analyst/SOAR IP only</td><td>gRPC API access</td></tr>
+    <tr><td>Inbound</td><td>22</td><td>TCP</td><td>Analyst IP only</td><td>SSH management — Bastion host preferred</td></tr>
+    <tr><td>Outbound</td><td>All</td><td>Any</td><td>Any</td><td>Allow outbound for updates and enrichment</td></tr>
+  </table></div>
+  <div class="banner-red"><strong>Never expose port 8889 (GUI) to the public internet.</strong> Use an Azure Bastion Host or SSH tunnel for GUI access. Use a VPN or IP allowlist for port 8000 if your client population allows it.</div>
+
+  <div class="h3">Step 3 — Install and Configure Velociraptor on the Server VM</div>
+  <div class="cb"><span class="cmt"># SSH into your Azure VM</span>
+ssh -i ~/.ssh/azure_key azureuser@YOUR_VM_IP
+
+<span class="cmt"># Download latest Velociraptor binary</span>
+wget https://github.com/Velocidex/velociraptor/releases/latest/download/velociraptor-linux-amd64
+chmod +x velociraptor-linux-amd64
+sudo mv velociraptor-linux-amd64 /usr/local/bin/velociraptor
+
+<span class="cmt"># Generate production config (interactive wizard)</span>
+<span class="cmt"># Use your Azure VM's public IP or DNS name as the server address</span>
+sudo velociraptor config generate -i
+
+<span class="cmt"># Test: start the server manually first</span>
+sudo velociraptor --config /etc/velociraptor/server.config.yaml frontend -v
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 4 — Install as a systemd Service</div>
+  <div class="cb"><span class="cmt"># Create systemd service unit</span>
+sudo tee /etc/systemd/system/velociraptor.service &lt;&lt;EOF
+[Unit]
+Description=Velociraptor DFIR Server
+After=network.target
+
+[Service]
+Type=simple
+User=velociraptor
+Group=velociraptor
+ExecStart=/usr/local/bin/velociraptor --config /etc/velociraptor/server.config.yaml frontend
+Restart=always
+RestartSec=10
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+<span class="cmt"># Create dedicated service user (least privilege)</span>
+sudo useradd -r -s /bin/false velociraptor
+sudo mkdir -p /var/lib/velociraptor /etc/velociraptor
+sudo chown -R velociraptor:velociraptor /var/lib/velociraptor /etc/velociraptor
+
+<span class="cmt"># Enable and start</span>
+sudo systemctl daemon-reload
+sudo systemctl enable velociraptor
+sudo systemctl start velociraptor
+sudo systemctl status velociraptor
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 5 — TLS Certificate (Let's Encrypt for Public DNS)</div>
+  <div class="cb"><span class="cmt"># If using a domain name (recommended for production)</span>
+<span class="cmt"># Velociraptor can use Let's Encrypt automatically</span>
+<span class="cmt"># In config generate wizard: choose "Use Let's Encrypt"</span>
+<span class="cmt"># Provide your domain name: velociraptor.corp.example.com</span>
+
+<span class="cmt"># DNS: Create A record → velociraptor.corp.example.com → Azure VM Public IP</span>
+<span class="cmt"># Port 443 must be open for Let's Encrypt ACME challenge</span>
+
+<span class="cmt"># After setup, clients connect to: https://velociraptor.corp.example.com:8000</span>
+<button class="copy-btn">Copy</button></div>
+</div>
+
+<!-- HARDENING -->
+<div id="et4" class="sp">
+  <div class="h2">Velociraptor Server Hardening Checklist</div>
+  <div class="banner-teal"><strong>Your Velociraptor server holds the keys to your entire endpoint fleet.</strong> A compromised server means an attacker can execute arbitrary code on every enrolled endpoint. Harden it like a domain controller.</div>
+
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Control</th><th>Implementation</th><th>Priority</th></tr>
+    <tr><td>Restrict GUI access by IP</td><td>NSG/firewall rule: port 8889 to analyst IPs only. Prefer SSH tunnel or VPN.</td><td><span class="badge badge-red">Critical</span></td></tr>
+    <tr><td>Secure server.config.yaml</td><td>This file contains the private CA. Permissions: 600, owner: velociraptor. Back up securely offline. Never commit to git.</td><td><span class="badge badge-red">Critical</span></td></tr>
+    <tr><td>Enable 2FA on GUI</td><td>Settings → Users → enable TOTP for all admin accounts. Use Authenticator app.</td><td><span class="badge badge-ok">High</span></td></tr>
+    <tr><td>Use dedicated service account</td><td>Run velociraptor service as non-root user with only necessary permissions.</td><td><span class="badge badge-ok">High</span></td></tr>
+    <tr><td>Separate API credentials</td><td>Generate API key with minimal scope. Never use admin credentials for automation.</td><td><span class="badge badge-ok">High</span></td></tr>
+    <tr><td>Enable audit logging</td><td>All user actions are logged. Configure log export to SIEM for server admin activity.</td><td><span class="badge badge-ok">High</span></td></tr>
+    <tr><td>Rotate client certs on schedule</td><td>Generate new client configs annually or after staff turnover. Revoke old client certificates.</td><td><span class="badge badge-warn">Medium</span></td></tr>
+    <tr><td>Backup data store</td><td>Back up /var/lib/velociraptor daily. Test restoration quarterly.</td><td><span class="badge badge-warn">Medium</span></td></tr>
+    <tr><td>OS hardening</td><td>Disable SSH password auth, enable UFW, apply security patches, disable unused services.</td><td><span class="badge badge-ok">High</span></td></tr>
+    <tr><td>Separate frontend from GUI</td><td>In large deployments: dedicated frontend VMs for clients, separate GUI-only VM for analysts.</td><td><span class="badge badge-info">Scale</span></td></tr>
+  </table></div>
+
+  <div class="h3">SSH Tunnel for GUI Access (No Public Exposure)</div>
+  <div class="cb"><span class="cmt"># Access the GUI without exposing port 8889 publicly</span>
+<span class="cmt"># On your analyst workstation:</span>
+ssh -L 8889:localhost:8889 -N azureuser@YOUR_VM_IP
+
+<span class="cmt"># Then browse to: https://localhost:8889</span>
+<span class="cmt"># Traffic travels over SSH, port 8889 never exposed to internet</span>
+<button class="copy-btn">Copy</button></div>
+</div>
+
+<!-- MULTI-ORG / MSSP -->
+<div id="et5" class="sp">
+  <div class="banner"><strong>Multi-tenancy (Orgs)</strong> lets you run one Velociraptor server that serves multiple client organizations with complete data isolation — each org sees only their own clients, hunts, and results. Essential for MSSP deployments.</div>
+
+  <div class="h2">Creating and Managing Organizations</div>
+  <div class="cb"><span class="cmt"># Create a new org via CLI</span>
+velociraptor --config server.config.yaml orgs create \
+  --name "Acme Corp" \
+  --org_id "acme"
+
+<span class="cmt"># List all orgs</span>
+velociraptor --config server.config.yaml orgs list
+
+<span class="cmt"># Create a user scoped to a specific org only</span>
+velociraptor --config server.config.yaml user add analyst1 \
+  --role investigator \
+  --org acme
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h2">Per-Org Client Configuration</div>
+  <div class="cb"><span class="cmt"># Generate client config for a specific org</span>
+<span class="cmt"># In GUI: switch to the org, then go to Server Artifacts → Server.Utils.CreateCollector</span>
+<span class="cmt"># The generated client.config.yaml will be pinned to that org</span>
+
+<span class="cmt"># Clients enroll into the org they were configured for</span>
+<span class="cmt"># An admin can see all orgs; an org user sees only their org</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h2">MSSP Architecture Pattern</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Component</th><th>Configuration</th></tr>
+    <tr><td>Single Velociraptor Server</td><td>One server handles all clients across all orgs. Data stored in separate directories per org.</td></tr>
+    <tr><td>Per-Org Analyst Accounts</td><td>Investigator role scoped to one org. Cannot see other orgs' data or clients.</td></tr>
+    <tr><td>MSSP Admin Account</td><td>Administrator role with all-org visibility. Used for infrastructure management only.</td></tr>
+    <tr><td>Per-Org Client Config</td><td>Each customer gets a unique client.config.yaml with their org embedded. Binary is the same.</td></tr>
+    <tr><td>Shared Detection Content</td><td>Artifacts and YARA rules are global. Deploy new detections across all orgs simultaneously from admin view.</td></tr>
+  </table></div>
+</div>
+
+<!-- UNINSTALL & CLEANUP -->
+<div id="et6" class="sp">
+  <div class="banner-teal"><strong>Forensically sound removal</strong> matters. When decommissioning Velociraptor, removing exclusions incorrectly or leaving config files behind can cause security gaps or EDR alert storms. Follow this procedure carefully.</div>
+
+  <div class="h2">Client Uninstall — Windows (Forensically Sound)</div>
+  <div class="h3">Step 1 — Record Final State Before Removal</div>
+  <div class="cb"><span class="cmt"># Before uninstalling, collect a final baseline from the client</span>
+<span class="cmt"># In Velociraptor GUI: trigger a final collection on the endpoint</span>
+<span class="cmt"># Recommended: Windows.System.Pslist, Windows.Sys.StartupItems, Windows.System.Services</span>
+<span class="cmt"># This documents the endpoint state at time of decommission</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 2 — Remove the Windows Client Service</div>
+  <div class="cb"><span class="cmt"># Method 1: Using Velociraptor binary (cleanest)</span>
+velociraptor.exe --config client.config.yaml service remove
+
+<span class="cmt"># Method 2: Via sc.exe if binary is unavailable</span>
+sc.exe stop velociraptor
+sc.exe delete velociraptor
+
+<span class="cmt"># Method 3: PowerShell</span>
+Stop-Service -Name velociraptor -Force
+Remove-Service -Name velociraptor
+
+<span class="cmt"># Verify service is gone</span>
+Get-Service -Name velociraptor
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 3 — Remove Files and Config</div>
+  <div class="cb"><span class="cmt"># Remove the installation directory (Admin PowerShell)</span>
+Remove-Item -Recurse -Force "C:\Program Files\Velociraptor"
+
+<span class="cmt"># Remove client config if stored separately</span>
+Remove-Item -Force "C:\Windows\System32\velociraptor.config.yaml"
+
+<span class="cmt"># Remove any Winlogon or registry artifacts</span>
+Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\velociraptor" -ErrorAction SilentlyContinue
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 4 — Remove EDR / AV Exclusions (CRITICAL)</div>
+  <div class="cb"><span class="cmt"># Remove Defender exclusions after client is fully removed</span>
+<span class="cmt"># Removing BEFORE uninstall will trigger EDR alerts during the removal process</span>
+Remove-MpPreference -ExclusionProcess "velociraptor.exe"
+Remove-MpPreference -ExclusionPath "C:\Program Files\Velociraptor"
+
+<span class="cmt"># For CrowdStrike/SentinelOne/other: remove via the EDR console</span>
+<span class="cmt"># Configuration → Exclusions → find velociraptor entries → delete</span>
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h3">Step 5 — Decommission from Server</div>
+  <div class="cb"><span class="cmt"># In Velociraptor GUI: find the client → Client Information → Delete Client</span>
+<span class="cmt"># This removes all collected artifacts, flow history, and the client record</span>
+
+<span class="cmt"># Via VQL on the server (admin only):</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">client_delete</span>(client_id=<span class="str">"C.abc123"</span>, really_do_it=<span class="str">TRUE</span>)
+<button class="copy-btn">Copy</button></div>
+
+  <div class="h2">Linux Client Uninstall</div>
+  <div class="cb"><span class="cmt"># Stop and disable the systemd service</span>
+sudo systemctl stop velociraptor_client
+sudo systemctl disable velociraptor_client
+
+<span class="cmt"># Remove the service unit file</span>
+sudo rm /etc/systemd/system/velociraptor_client.service
+sudo systemctl daemon-reload
+
+<span class="cmt"># Remove binary and config</span>
+sudo rm /usr/local/bin/velociraptor
+sudo rm /etc/velociraptor/client.config.yaml
+sudo rmdir /etc/velociraptor 2>/dev/null || true
+
+<span class="cmt"># Verify removal</span>
+systemctl status velociraptor_client
+which velociraptor
+<button class="copy-btn">Copy</button></div>
+</div>
+`;}
+
+/* ── paneOverview ── */
 function paneOverview(){return`
 <div class="g3">
   <div class="metric"><div class="m-label">Max clients (single node)</div><div class="m-value">15K</div><div class="m-sub">per frontend</div></div>
@@ -1717,6 +2659,25 @@ const SEARCH_INDEX = [
   {id:'forensics',title:'Dead Disk Analysis',text:'dead disk E01 raw image artifact collection deaddisk remapping offline'},
   {id:'monitoring',title:'SERVER_EVENT Alerting',text:'SERVER_EVENT watch_monitoring Slack webhook alert automated response SOAR'},
   {id:'reference',title:'CLI Commands',text:'gui config generate frontend query artifacts list collect user add service install import deaddisk'},
+  // Playbooks
+  {id:'playbooks',title:'Ransomware Triage Playbook',text:'ransomware triage isolate quarantine volatile snapshot encryptor RDP brute force initial access USN journal YARA ransom note'},
+  {id:'playbooks',title:'Lateral Movement Investigation',text:'lateral movement credential theft pass hash PSExec RDP WMI BAM logon 4624 Type 3 Type 10 process chain compromise scope'},
+  {id:'playbooks',title:'Memory & Cobalt Strike Beacon Hunt',text:'in-memory beacon Cobalt Strike YARA process injection VAD execute readwrite DNS beaconing fileless shellcode reflective loader'},
+  {id:'playbooks',title:'Ransomware — Data Exfiltration Check',text:'SRUM bytes sent exfiltration data theft before encryption scope blast radius persistence backdoor'},
+  // Lab Setup
+  {id:'labsetup',title:'Lab Architecture & VM Setup',text:'virtual machine victim VM Windows 10 evaluation VirtualBox VMware lab range practice setup'},
+  {id:'labsetup',title:'Atomic Red Team',text:'Atomic Red Team MITRE ATT&CK simulate attack technique telemetry generate Invoke-AtomicTest scheduled task LSASS'},
+  {id:'labsetup',title:'Enable Audit Policies',text:'auditpol process creation 4688 PowerShell script block logging 4104 module logging event log size'},
+  {id:'labsetup',title:'Practice Investigation Exercises',text:'exercise find persistence timeline reconstruct log clear injected process full chain investigation'},
+  // Enterprise
+  {id:'enterprise',title:'Intune Deployment',text:'Intune MDM MSI package deploy silent install repack config embed line of business app Intune deployment ring rollout'},
+  {id:'enterprise',title:'Group Policy GPO Deployment',text:'GPO group policy software installation startup script AD domain on-prem active directory NETLOGON MSI'},
+  {id:'enterprise',title:'SCCM ConfigMgr Deployment',text:'SCCM ConfigMgr application deployment collection detection method product code'},
+  {id:'enterprise',title:'EDR Exclusions — Critical',text:'EDR exclusion AV antivirus CrowdStrike SentinelOne Defender Carbon Black exclusion path process YARA raw disk blocked quarantined'},
+  {id:'enterprise',title:'Azure Cloud Server Setup',text:'Azure VM Ubuntu cloud server NSG network security group port 8000 8889 systemd service Let\'s Encrypt TLS certificate'},
+  {id:'enterprise',title:'Velociraptor Server Hardening',text:'hardening security 2FA TOTP SSH tunnel restrict GUI IP server config yaml private CA backup rotate certificates'},
+  {id:'enterprise',title:'Multi-Org MSSP Tenancy',text:'multi-org MSSP tenant isolation org create analyst scoped organization client config per org shared detection'},
+  {id:'enterprise',title:'Client Uninstall — Forensically Sound',text:'uninstall remove service cleanup forensic decommission Windows Linux exclusion remove config delete client'},
 ];
 
 /* ── Global Search ── */
@@ -1762,6 +2723,8 @@ const PANES = {
   quickstart:paneQuickstart,
   architecture:paneArchitecture,
   dfirfundamentals:paneDFIRFundamentals,
+  playbooks:panePlaybooks,
+  labsetup:paneLabSetup,
   vql:paneVQL,
   artifacts:paneArtifacts,
   clients:paneClients,
@@ -1771,6 +2734,7 @@ const PANES = {
   offline:paneOffline,
   notebooks:paneNotebooks,
   api:paneAPI,
+  enterprise:paneEnterprise,
   reference:paneReference
 };
 
@@ -1870,9 +2834,20 @@ document.getElementById('collapseBtn').onclick = ()=>{
   document.getElementById('collapseBtn').textContent = sidebarCollapsed ? '›' : '‹';
 };
 
+/* ── Mode toggle (Beginner / Expert) ── */
+window.setMode = function(mode){
+  document.getElementById('modeBeginner').classList.toggle('active', mode==='beginner');
+  document.getElementById('modeExpert').classList.toggle('active', mode==='expert');
+  document.body.classList.toggle('expert-mode', mode==='expert');
+  localStorage.setItem('velo-mode', mode);
+};
+
 /* ── Init ── */
 applyTheme();
 buildNav();
+// Restore mode preference
+const savedMode = localStorage.getItem('velo-mode') || 'beginner';
+setMode(savedMode);
 goTo('overview');
 </script>
 </body>

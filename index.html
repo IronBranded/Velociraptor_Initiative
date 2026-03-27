@@ -271,4 +271,2534 @@ ul.vl li{margin-bottom:1px}
 
 /* ── Kill chain steps ────────────────────────────── */
 .killchain{display:flex;gap:0;flex-wrap:wrap;margin:10px 0 14px}
-.kc-step{flex:1;min-width:70px;padding:8px 6px;text-align:center;bord
+.kc-step{flex:1;min-width:70px;padding:8px 6px;text-align:center;border:1px solid var(--border);position:relative}
+.kc-step:not(:last-child)::after{content:'▶';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--orange);font-size:10px;z-index:1}
+.kc-step:first-child{border-radius:6px 0 0 6px}
+.kc-step:last-child{border-radius:0 6px 6px 0}
+.kc-icon{font-size:16px;display:block;margin-bottom:3px}
+.kc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
+.kc-step.highlight{background:rgba(200,40,40,.08);border-color:rgba(200,40,40,.3)}
+.kc-step.highlight .kc-label{color:#c04040}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── Sidebar ── -->
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">VR</div>
+    <div class="sb-logo-text">
+      <div class="sb-logo-title">Velociraptor</div>
+      <div class="sb-logo-sub">Digging Deeper</div>
+    </div>
+  </div>
+  <div class="sb-nav" id="sbNav"></div>
+  <div class="sb-bottom">
+    <button class="theme-btn" id="themeBtn">☀ Light</button>
+    <button class="collapse-btn" id="collapseBtn" title="Toggle sidebar">‹</button>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div id="main">
+  <div id="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="tbTitle">Overview</div>
+      <div class="topbar-sub" id="tbSub">Velociraptor DFIR Platform — Interactive Guide</div>
+    </div>
+    <div class="topbar-badges">
+      <span class="badge badge-ok">v0.73.x</span>
+      <span class="badge badge-info">Open Source</span>
+      <span class="badge badge-orange">AGPL v3</span>
+      <span class="badge badge-violet">SANS-Aligned</span>
+      <a href="https://github.com/Velocidex/velociraptor" target="_blank" style="text-decoration:none"><span class="badge badge-warn">★ GitHub</span></a>
+    </div>
+  </div>
+  <div id="content"></div>
+</div>
+</div>
+
+<script>
+/* ── State ── */
+let isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+let sidebarCollapsed = false;
+
+/* ── Nav config ── */
+const NAV = [
+  {id:'overview',label:'Overview',icon:'◎',section:'Platform'},
+  {id:'quickstart',label:'Quick Start',icon:'▶'},
+  {id:'architecture',label:'Architecture',icon:'⬡'},
+  {id:'dfir-fundamentals',label:'DFIR Fundamentals',icon:'⚖',section:'DFIR Knowledge'},
+  {id:'telemetry',label:'Windows Telemetry',icon:'◈'},
+  {id:'ir-lifecycle',label:'IR Lifecycle',icon:'↻'},
+  {id:'playbook-ransomware',label:'Ransomware Playbook',icon:'💥',section:'Case Studies'},
+  {id:'playbook-lateral',label:'Lateral Movement',icon:'↔'},
+  {id:'playbook-memory',label:'Memory & Malware',icon:'🧠'},
+  {id:'vql',label:'VQL Language',icon:'⌗',section:'Velociraptor Core'},
+  {id:'artifacts',label:'Artifacts',icon:'◈'},
+  {id:'clients',label:'Client Management',icon:'◉',section:'Operations'},
+  {id:'hunting',label:'Hunts & Hunting',icon:'◎'},
+  {id:'forensics',label:'Forensic Analysis',icon:'⬟'},
+  {id:'monitoring',label:'Live Monitoring',icon:'▣'},
+  {id:'offline',label:'Offline Collectors',icon:'⬡'},
+  {id:'notebooks',label:'Notebooks',icon:'▤'},
+  {id:'api',label:'Server API',icon:'⇄'},
+  {id:'reference',label:'Quick Reference',icon:'☰',section:'Reference'},
+];
+
+const TITLES = {overview:'Overview',quickstart:'Quick Start',architecture:'Architecture','dfir-fundamentals':'DFIR Fundamentals',telemetry:'Windows Telemetry & Artifacts',
+  'ir-lifecycle':'The Incident Response Lifecycle',
+  'playbook-ransomware':'Playbook: Ransomware Triage & Investigation',
+  'playbook-lateral':'Playbook: Lateral Movement Detection',
+  'playbook-memory':'Playbook: Memory Analysis & In-Memory Malware',
+  vql:'VQL Language',artifacts:'Artifacts',clients:'Client Management',hunting:'Hunts & Hunting',forensics:'Forensic Analysis',monitoring:'Live Monitoring',offline:'Offline Collectors',notebooks:'Notebooks',api:'Server API & Automation',reference:'Quick Reference'};
+const SUBS = {overview:'Platform capabilities, deployment modes, and key facts',quickstart:'Download, instant GUI, and first VQL query',architecture:'Components, security model, scaling, and data flow',
+  'dfir-fundamentals':'Core concepts, principles, roles, and evidence theory every DFIR practitioner must know',
+  telemetry:'What Windows artifacts actually are, where they live, and what they prove in an investigation',
+  'ir-lifecycle':'PICERL phases and exactly where Velociraptor fits in each stage',
+  'playbook-ransomware':'Step-by-step: isolate, triage, find initial access, hunt the encryptor, scope lateral movement',
+  'playbook-lateral':'Detect compromised credentials moving across the network using event logs, SRUM, and VQL',
+  'playbook-memory':'Identify injected threads, process hollowing, and in-memory beacons with YARA and memory analysis',
+  vql:'Syntax, plugins, functions, accessors, and examples',artifacts:'YAML structure, types, catalog, and writing tips',clients:'Searching, labeling, collecting, and managing endpoints',hunting:'Fleet-wide artifact collection and IOC hunting workflow',forensics:'Filesystem, execution evidence, event logs, memory, dead disk',monitoring:'Real-time event streaming and automated server-side alerting',offline:'Air-gapped and standalone collection without a persistent agent',notebooks:'Interactive investigation environments built into the GUI',api:'gRPC API, pyvelociraptor, SOAR integration, and automation',reference:'CLI commands, artifact index, ACL roles, and external resources'};
+
+/* ── Artifact catalog ── */
+const ARTS = [
+  {n:'Windows.System.Pslist',d:'Running processes with PID, PPID, command line',t:['windows','process'],c:'windows'},
+  {n:'Windows.Network.Netstat',d:'Network connections and listening ports',t:['windows','network'],c:'windows'},
+  {n:'Windows.Sys.StartupItems',d:'Persistence via startup registry keys',t:['windows','persistence'],c:'windows'},
+  {n:'Windows.System.Services',d:'Installed Windows services',t:['windows','persistence'],c:'windows'},
+  {n:'Windows.System.ScheduledTasks',d:'Scheduled task persistence',t:['windows','persistence'],c:'windows'},
+  {n:'Windows.Forensics.Prefetch',d:'Application execution history (Prefetch files)',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.Amcache',d:'Recently run software from Amcache.hve',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.ShimCache',d:'AppCompatCache execution evidence',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.SRUM',d:'Historical process, network, and battery usage',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.Bam',d:'Background Activity Monitor execution evidence',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.LnkFiles',d:'Recent file access via LNK link files',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.Forensics.RecycleBin',d:'Files deleted to the Recycle Bin',t:['windows','forensics'],c:'forensics'},
+  {n:'Windows.EventLogs.EvtxHunter',d:'Hunt across all Windows event log channels',t:['windows','evtx'],c:'windows'},
+  {n:'Generic.Detection.Yara',d:'YARA scan files or process memory',t:['detection','yara'],c:'detection'},
+  {n:'Windows.Sigma.Base',d:'Apply Sigma rules to Windows event logs',t:['detection','sigma'],c:'detection'},
+  {n:'Windows.Detection.Yara.Process',d:'Scan all running process memory with YARA',t:['detection','yara','memory'],c:'detection'},
+  {n:'Linux.Sys.Pslist',d:'Running processes on Linux',t:['linux','process'],c:'linux'},
+  {n:'Linux.Sys.LastLogon',d:'Recent login history on Linux systems',t:['linux','auth'],c:'linux'},
+  {n:'Linux.Sys.Crontab',d:'Cron-based persistence entries',t:['linux','persistence'],c:'linux'},
+  {n:'Linux.Sys.BashHistory',d:'Bash command history for all users',t:['linux','forensics'],c:'linux'},
+  {n:'Generic.Forensics.SQLiteHunter',d:'Browser history, cookies, and SQLite DBs',t:['forensics','browser'],c:'forensics'},
+  {n:'Server.Utils.CreateCollector',d:'Build a standalone offline collector binary',t:['server','utility'],c:'windows'},
+];
+
+/* ══════════════════════════════════════════════════════════
+   PANE CONTENT FUNCTIONS
+   ══════════════════════════════════════════════════════════ */
+
+function paneOverview(){return`
+<div class="g3">
+  <div class="metric"><div class="m-label">Max clients (single node)</div><div class="m-value">15K</div><div class="m-sub">per frontend</div></div>
+  <div class="metric"><div class="m-label">Max clients (multi-frontend)</div><div class="m-value">100K+</div><div class="m-sub">horizontally scaled</div></div>
+  <div class="metric"><div class="m-label">VQL plugins</div><div class="m-value">350+</div><div class="m-sub w">and growing</div></div>
+</div>
+<div class="banner"><strong>What is Velociraptor?</strong> An open-source endpoint monitoring, DFIR, and IR platform. A single binary — no database, no installer. Built around VQL, a forensic query language that runs natively on endpoints. Developed by Velocidex, now supported by Rapid7.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">★</span> Core Capabilities</div>
+    <ul class="vl">
+      <li>Scalable artifact collection across large fleets</li>
+      <li>VQL — SQL-like language purpose-built for DFIR</li>
+      <li>Real-time endpoint event monitoring and alerting</li>
+      <li>Offline collectors for air-gapped or isolated systems</li>
+      <li>Dead-disk analysis from raw images (E01, DD, VMDK)</li>
+      <li>YARA and Sigma rule integration</li>
+      <li>Virtual File System for remote file browsing</li>
+      <li>Interactive Notebooks for collaborative investigation</li>
+      <li>Multi-org support for MSSP deployments</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">▣</span> Deployment Modes</div>
+    <div class="tbl-wrap">
+    <table class="vt">
+      <tr><th>Mode</th><th>Description</th></tr>
+      <tr><td><span class="pill p-o">Instant GUI</span></td><td>All-in-one local testing, no setup</td></tr>
+      <tr><td><span class="pill p-t">Client-Server</span></td><td>Production persistent agent fleet</td></tr>
+      <tr><td><span class="pill p-b">Offline Collector</span></td><td>Standalone ZIP collection, no agent</td></tr>
+      <tr><td><span class="pill p-r">CLI / Query</span></td><td>One-shot VQL from the command line</td></tr>
+      <tr><td><span class="pill p-t">Dead-Disk</span></td><td>VQL against raw disk images</td></tr>
+    </table>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-b">i</span> Project Info</div>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px">
+    <span style="color:var(--muted)">Author: <strong style="color:var(--text)">Velocidex / Rapid7</strong></span>
+    <span style="color:var(--muted)">License: <strong style="color:var(--text)">AGPL v3</strong></span>
+    <span style="color:var(--muted)">Language: <strong style="color:var(--text)">Go</strong></span>
+    <span style="color:var(--muted)">GitHub Stars: <strong style="color:var(--text)">3.8k+</strong></span>
+    <span style="color:var(--muted)">Latest: <strong style="color:var(--teal)">v0.73.x</strong></span>
+    <span style="color:var(--muted)">Docs: <a href="https://docs.velociraptor.app" target="_blank" style="color:var(--teal)">docs.velociraptor.app</a></span>
+  </div>
+</div>`;}
+
+/* ══ DFIR FUNDAMENTALS ══════════════════════════════════════ */
+function paneDfirFundamentals(){return`
+<div id="dfir-tabs" class="tab-bar">
+  <button class="tab active" data-target="df1">Definitions & Theory</button>
+  <button class="tab" data-target="df2">Digital Evidence</button>
+  <button class="tab" data-target="df3">Key Principles</button>
+  <button class="tab" data-target="df4">DFIR Roles</button>
+  <button class="tab" data-target="df5">Normal vs Evil</button>
+</div>
+
+<!-- TAB 1: Definitions & Theory -->
+<div id="df1" class="sp active">
+  <div class="banner-violet"><strong>Who is this for?</strong> If you are new to DFIR, start here. This section gives you the conceptual framework that makes everything else — the VQL queries, the artifacts, the hunts — actually meaningful. Syntax without context is useless. Context without syntax is powerless. You need both.</div>
+  
+  <div class="h2">What is Digital Forensics?</div>
+  <div class="p">Digital forensics is the underlying methodology that gives examiners the ability to answer the <strong>who, what, why, when, where, and how</strong> questions in an investigation. It is a disciplined, repeatable, and defensible process — not just "running tools."</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><span class="ct ct-b">?</span> Event vs. Incident</div>
+      <p class="p"><strong>An event</strong> is something that happened — planned or unplanned. A user logged in, a file was created, a process started. These happen thousands of times per day on every endpoint.</p>
+      <p class="p"><strong>An incident</strong> is an event that was unauthorized, against security policy, or caused disruption. The key skill in DFIR is knowing what is <em>normal</em> so you can detect what is <em>abnormal</em>.</p>
+      <p class="p" style="margin-bottom:0">Velociraptor is designed to help you enumerate the normal at scale so the abnormal stands out — through artifact collection, hunt results, and continuous monitoring.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-t">◈</span> Data vs. Metadata</div>
+      <p class="p"><strong>Data</strong> is information in digital form that can be transmitted or processed. The content of a file, the bytes on disk.</p>
+      <p class="p"><strong>Metadata</strong> is data about data. It comes in two forms:</p>
+      <ul class="vl">
+        <li><strong>Filesystem metadata</strong>: filename, size, Created/Modified/Accessed timestamps, owner — stored by the OS independently of the file's content</li>
+        <li><strong>File metadata</strong>: embedded within the file itself — author, GPS coordinates, camera model, last-saved-by</li>
+      </ul>
+      <p class="p" style="margin-top:6px;margin-bottom:0">⚠️ A file's extension does NOT determine its type. The file's <strong>magic header</strong> (first bytes) does. Attackers routinely rename executables with benign extensions.</p>
+    </div>
+  </div>
+
+  <div class="h2">Locard's Exchange Principle — Applied to Digital Forensics</div>
+  <div class="banner-teal"><strong>The fundamental law of forensics:</strong> Anyone or anything entering a scene takes something with them and leaves something behind. This is just as true digitally as physically.</div>
+  <div class="g2">
+    <div class="card" style="border-left:3px solid var(--teal)">
+      <div class="card-title">Physical Example</div>
+      <p class="p">Walking across fresh snow leaves footprints behind and puts snow particles on your shoes. The scene is changed. The actor carries evidence away.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--orange)">
+      <div class="card-title">Digital Example</div>
+      <p class="p">Opening a text file on Windows will produce evidence showing that Notepad ran, file access evidence showing which file was opened, when, where it resides, and which user account opened it — even if the user closes the file without saving anything.</p>
+    </div>
+  </div>
+  <div class="banner-red"><strong>Anti-forensics also leaves traces.</strong> An attacker who deletes logs, wipes timestamps, or clears the Recycle Bin creates new evidence: the <em>absence</em> of data that should have existed. Event 1102 (audit log cleared), a gap in prefetch file timestamps, or missing MFT records are all artifacts of attempted cover-up.</div>
+
+  <div class="h2">Hashing — The Foundation of Evidence Integrity</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><span class="ct ct-b">⊕</span> What Hashing Is</div>
+      <p class="p">A one-way mathematical function that takes input data of any size and produces a fixed-length output (the hash). The same input always produces the same hash. A single changed bit produces a completely different hash.</p>
+      <div class="tbl-wrap"><table class="vt">
+        <tr><th>Algorithm</th><th>Output</th><th>DFIR Use</th></tr>
+        <tr><td>MD5</td><td>128-bit / 32 hex chars</td><td>Quick integrity check, legacy</td></tr>
+        <tr><td>SHA1</td><td>160-bit / 40 hex chars</td><td>Amcache records SHA1 of executables</td></tr>
+        <tr><td>SHA256</td><td>256-bit / 64 hex chars</td><td>Gold standard for evidence integrity</td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-o">★</span> In Velociraptor</div>
+      <p class="p">Velociraptor can compute hashes on-the-fly during collection without transferring the full file:</p>
+      <div class="cb" style="margin:0;font-size:11px"><span class="kw">SELECT</span> FullPath,
+       hash(path=FullPath).MD5 <span class="kw">AS</span> MD5,
+       hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Temp/*.exe"</span>)</div>
+      <p class="p" style="margin-top:6px;margin-bottom:0">The hash becomes your evidence tag — submit it to VirusTotal, compare against known-good baselines, or use it to prove a file was not altered.</p>
+    </div>
+  </div>
+
+  <div class="h2">Order of Volatility — Collect the Most Perishable Evidence First</div>
+  <div class="p">Digital evidence disappears at different rates. RAM is lost the moment power is cut. Backups may exist for years. Collect in this order:</div>
+  <div class="flow">
+    <div class="step"><span class="step-n">1</span><span class="step-l">CPU Registers/Cache</span></div>
+    <div class="step"><span class="step-n">2</span><span class="step-l">RAM / Memory</span></div>
+    <div class="step"><span class="step-n">3</span><span class="step-l">Router / ARP Tables</span></div>
+    <div class="step"><span class="step-n">4</span><span class="step-l">Temp Filesystems</span></div>
+    <div class="step"><span class="step-n">5</span><span class="step-l">Disk / NTFS</span></div>
+    <div class="step"><span class="step-n">6</span><span class="step-l">Remote / Cloud Logs</span></div>
+    <div class="step"><span class="step-n">7</span><span class="step-l">Network Topology</span></div>
+    <div class="step"><span class="step-n">8</span><span class="step-l">Offsite Backups</span></div>
+  </div>
+  <div class="banner-teal"><strong>Velociraptor can acquire all levels 2–6 live across thousands of endpoints simultaneously.</strong> For level 1 (RAM), Velociraptor integrates with WinPmem. For level 5 (disk), the NTFS accessor bypasses the OS to read raw structures. For level 6, cloud provider artifacts are supported through dedicated artifact collections.</div>
+</div>
+
+<!-- TAB 2: Digital Evidence -->
+<div id="df2" class="sp">
+  <div class="h2">Sources of Digital Evidence</div>
+  <div class="p">Evidence exists across many device types. Understanding where data lives — and how Velociraptor reaches it — is foundational to any investigation.</div>
+  
+  <div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+    <tr><th>Device Type</th><th>Key Evidence</th><th>Velociraptor Access</th></tr>
+    <tr><td><strong>Windows Desktop/Laptop</strong></td><td>NTFS artifacts, registry, event logs, prefetch, browser history, memory</td><td><span class="badge badge-ok">Full live + dead-disk</span></td></tr>
+    <tr><td><strong>Windows Server</strong></td><td>Domain controller logs, IIS/web logs, AD database (NTDS.dit), service logs</td><td><span class="badge badge-ok">Full live + dead-disk</span></td></tr>
+    <tr><td><strong>Linux Server</strong></td><td>Syslog, auth.log, bash history, cron, /proc filesystem</td><td><span class="badge badge-ok">Full live</span></td></tr>
+    <tr><td><strong>Virtual Machines</strong></td><td>Same as physical — plus snapshots may contain deleted data</td><td><span class="badge badge-ok">Offline image support</span></td></tr>
+    <tr><td><strong>RAM (Live System)</strong></td><td>Running processes, network connections, encryption keys, injected code</td><td><span class="badge badge-warn">Via WinPmem integration</span></td></tr>
+    <tr><td><strong>Network Devices</strong></td><td>Firewall/proxy logs, DHCP assignments, NetFlow records</td><td><span class="badge badge-info">Log collection artifacts</span></td></tr>
+    <tr><td><strong>Cloud (Azure/AWS/GCP)</strong></td><td>Audit logs, sign-in logs, storage access, VM disk images</td><td><span class="badge badge-info">Cloud-specific artifacts</span></td></tr>
+    <tr><td><strong>Mobile / iOS / Android</strong></td><td>Call records, messages, location, installed apps</td><td><span class="badge badge-warn">Requires specialist tools (Cellebrite)</span></td></tr>
+  </table></div>
+
+  <div class="h2">File Deletion — What Actually Happens</div>
+  <div class="banner"><strong>Deleting a file does NOT destroy the data.</strong> Understanding this is critical to both recovering evidence and understanding why attackers who just delete files often fail to cover their tracks.</div>
+  <div class="g3">
+    <div class="card" style="border-top:3px solid var(--ok)">
+      <div class="card-title" style="font-size:11px">Stage 1: File "Deleted"</div>
+      <p class="p" style="font-size:11px">The filesystem metadata is marked as available for reuse. The clusters are marked as unallocated. The actual bytes are NOT overwritten. The full file including its original name and timestamps can typically be recovered.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--warn)">
+      <div class="card-title" style="font-size:11px">Stage 2: Metadata Overwritten</div>
+      <p class="p" style="font-size:11px">The filesystem record for the file is reused for a new file. The content may still exist. The file can potentially be recovered via <strong>file carving</strong>, but the original name, path, and timestamps are lost.</p>
+    </div>
+    <div class="card" style="border-top:3px solid #c04040">
+      <div class="card-title" style="font-size:11px">Stage 3: Content Overwritten</div>
+      <p class="p" style="font-size:11px">The actual data bytes are overwritten by new data. Content recovery is now impossible. However, the old filesystem metadata record may still exist, proving the file once existed with its timestamps.</p>
+    </div>
+  </div>
+  <div class="banner-teal"><strong>Velociraptor's NTFS accessor and <code>parse_mft()</code> plugin</strong> can see all three stages — it reads the raw MFT directly, bypassing the OS, and can enumerate deleted files that the operating system pretends no longer exist.</div>
+
+  <div class="h2">Server Evidence by Type</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Server Type</th><th>Key Evidence Produced</th><th>Key Velociraptor Artifact</th></tr>
+    <tr><td>Domain Controller</td><td>User logon/logoff events, AD authentication, group membership changes</td><td>Windows.EventLogs.EvtxHunter (IDs 4624, 4625, 4720, 4732)</td></tr>
+    <tr><td>Web Server (IIS)</td><td>HTTP access logs including source IPs, URIs, user-agents, upload detection</td><td>Windows.IIS.Access</td></tr>
+    <tr><td>Proxy Server</td><td>URLs visited, destination IPs, bytes transferred, user context</td><td>Log collection artifacts</td></tr>
+    <tr><td>DHCP Server</td><td>IP-to-MAC-to-hostname assignments with timestamps — critical for attribution</td><td>Windows.EventLogs.EvtxHunter</td></tr>
+    <tr><td>Firewall</td><td>Allowed/denied connection attempts, lateral movement paths</td><td>Log collection artifacts + netstat</td></tr>
+    <tr><td>Mail Server</td><td>Email metadata — sender, recipient, subject, headers (phishing investigation)</td><td>Windows.Applications.Exchange</td></tr>
+  </table></div>
+</div>
+
+<!-- TAB 3: Key Principles -->
+<div id="df3" class="sp">
+  <div class="h2">The ACPO Principles — Foundation of Defensible DFIR</div>
+  <div class="p">Originally developed by the Association of Chief Police Officers (UK), these four principles have been adopted globally as the foundational framework for defensible digital forensics — in both law enforcement and corporate IR.</div>
+  
+  <div class="card" style="border-left:4px solid #c04040;margin-bottom:10px">
+    <div class="card-title" style="color:#c04040">Principle 1 — Do No Harm to the Evidence</div>
+    <p class="p" style="margin-bottom:0">No action taken should change data that may subsequently be relied upon in a legal, regulatory, or disciplinary proceeding. Every tool you run, every file you open, every command you execute on a live system potentially modifies evidence. <strong>In Velociraptor:</strong> queries read data without modifying it. The NTFS accessor bypasses OS caching. Collections are timestamped and logged automatically.</p>
+  </div>
+  <div class="card" style="border-left:4px solid var(--warn);margin-bottom:10px">
+    <div class="card-title" style="color:var(--warn)">Principle 2 — Competence and Transparency</div>
+    <p class="p" style="margin-bottom:0">If original evidence must be accessed, the examiner must be competent to do so and must be able to explain the relevance and implications of their actions. <strong>In Velociraptor:</strong> VQL artifacts are readable, self-documenting queries that can be audited by anyone. Every collection is logged in the server audit trail.</p>
+  </div>
+  <div class="card" style="border-left:4px solid var(--orange);margin-bottom:10px">
+    <div class="card-title" style="color:var(--orange)">Principle 3 — Reproducibility</div>
+    <p class="p" style="margin-bottom:0">An audit trail of all processes applied to digital evidence must be created and preserved. An independent third party should be able to examine those processes and achieve the same result. <strong>In Velociraptor:</strong> artifacts are versioned YAML. Every hunt, collection, and result is stored with its full VQL source, parameters, and execution time.</p>
+  </div>
+  <div class="card" style="border-left:4px solid var(--teal);margin-bottom:10px">
+    <div class="card-title" style="color:var(--teal)">Principle 4 — Overall Accountability</div>
+    <p class="p" style="margin-bottom:0">The lead investigator has overall responsibility for ensuring legal and principled conduct. <strong>In Velociraptor:</strong> role-based access control (administrator, investigator, analyst, reader) enforces clear lines of authority. Every GUI action is logged with the user account that performed it.</p>
+  </div>
+
+  <div class="h2">Chain of Custody — Why It Matters</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><span class="ct ct-b">⛓</span> What It Is</div>
+      <p class="p">A document that tracks the movement of evidence from collection through analysis through presentation. It records every person who handled the evidence, with relevant dates, times, and purpose of any transfer.</p>
+      <p class="p" style="margin-bottom:0">Without a documented chain of custody, evidence can be challenged — even if it's authentic. Opposing counsel only needs to create doubt.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-t">◉</span> In Velociraptor</div>
+      <ul class="vl">
+        <li>Every collection is automatically timestamped and attributed to the user account that triggered it</li>
+        <li>Hunt results include client ID, collection time, artifact version, and VQL used</li>
+        <li>Offline collector ZIPs include a manifest with collection metadata</li>
+        <li>Server audit log provides a complete record of all user actions</li>
+        <li>Notebook exports include the full investigation history with timestamps</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="h2">Write Blocking — Physical vs. Software</div>
+  <div class="banner"><strong>Write blockers</strong> prevent any writes to the evidence drive, ensuring the original evidence is not modified during acquisition. This is critical for legal defensibility.</div>
+  <div class="g2">
+    <div class="card" style="border-top:3px solid var(--ok)">
+      <div class="card-title">Hardware Write Blockers</div>
+      <p class="p">Physical devices that sit between the evidence drive and the acquisition workstation. Examples: WiebeTech, Tableau. Validate before use — test with a known-write block test tool.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--orange)">
+      <div class="card-title">Velociraptor's Approach</div>
+      <p class="p">For live endpoint analysis, Velociraptor uses the NTFS accessor to open raw device handles in read-only mode — equivalent to software write-blocking. The <code>accessor="ntfs"</code> parameter reads directly from the disk without writing or modifying.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: DFIR Roles -->
+<div id="df4" class="sp">
+  <div class="p">Understanding the different roles in DFIR helps you know where you sit, what skills to develop, and who to involve in an incident. These roles often overlap in smaller teams — a single analyst may fill multiple roles.</div>
+  <div class="g2">
+    <div class="card" style="border-top:3px solid var(--ok)">
+      <div class="card-title">SOC Analyst</div>
+      <p class="p"><strong>Core mission:</strong> Monitor events and detect incidents. First to see alerts fire.</p>
+      <p class="p"><strong>Key skills:</strong> Network architecture, data sources, system logging, network defense, endpoint and network monitoring.</p>
+      <p class="p" style="margin-bottom:0"><strong>Velociraptor use:</strong> Receives alert from SIEM, triggers targeted collection using Velociraptor to gather triage data on the alerted host within minutes.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--warn)">
+      <div class="card-title">First Responder</div>
+      <p class="p"><strong>Core mission:</strong> Preserve evidence, acquire data, conduct initial triage. Often on-site or remote-accessing the compromised host.</p>
+      <p class="p"><strong>Key skills:</strong> Data acquisition, evidence preservation, digital forensic analysis, chain of custody.</p>
+      <p class="p" style="margin-bottom:0"><strong>Velociraptor use:</strong> Launches triage collection (processes, network connections, autorun, event logs) on the host in under 2 minutes. Uses offline collectors for isolated environments.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--orange)">
+      <div class="card-title">Forensic Investigator / Analyst</div>
+      <p class="p"><strong>Core mission:</strong> Skilled deep analysis of collected evidence to identify what happened, reconstruct attacker actions, and provide factual observations.</p>
+      <p class="p"><strong>Key skills:</strong> NTFS forensics, memory analysis, timeline analysis, reverse engineering, subject-matter expertise.</p>
+      <p class="p" style="margin-bottom:0"><strong>Velociraptor use:</strong> Runs targeted artifact collections, hunts across the fleet for lateral movement indicators, conducts dead-disk analysis on seized images.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--teal)">
+      <div class="card-title">Threat Hunter</div>
+      <p class="p"><strong>Core mission:</strong> Proactively search for attacker presence before an alert fires. Assumes breach and looks for evidence of it.</p>
+      <p class="p"><strong>Key skills:</strong> Attack framework knowledge (MITRE ATT&CK), anomaly detection, hypothesis-driven investigation.</p>
+      <p class="p" style="margin-bottom:0"><strong>Velociraptor use:</strong> Primary platform. Hunts with YARA rules, custom VQL, Sigma detection, and behavioral artifacts across thousands of endpoints simultaneously.</p>
+    </div>
+    <div class="card" style="border-top:3px solid #4a8fff">
+      <div class="card-title">Incident Manager</div>
+      <p class="p"><strong>Core mission:</strong> Ensure resources, tools, and support are in place. Acts as buffer between the IR team and stakeholders. Monitors team health and calls in specialists.</p>
+      <p class="p" style="margin-bottom:0"><strong>Velociraptor use:</strong> Reviews hunt summaries and Notebook reports for executive briefings. Tracks investigation scope through the hunt manager dashboard.</p>
+    </div>
+    <div class="card" style="border-top:3px solid #7c3aed">
+      <div class="card-title">DFIR Engineer / Tool Developer</div>
+      <p class="p"><strong>Core mission:</strong> Build and maintain the infrastructure and tooling that the team relies on. Write custom artifacts, integrations, and automation.</p>
+      <p class="p" style="margin-bottom:0"><strong>Velociraptor use:</strong> Authors VQL artifacts, deploys and maintains the Velociraptor server infrastructure, integrates with SIEM via the API, builds SOAR playbooks.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Normal vs Evil -->
+<div id="df5" class="sp">
+  <div class="banner-red"><strong>The first rule of threat hunting: know what normal looks like, so evil stands out.</strong> This is the SANS "Hunt Evil" poster methodology — every legitimate Windows process has expected attributes. Deviations are your leads.</div>
+  
+  <div class="h2">Normal Windows Process Hierarchy</div>
+  <div class="p">On a healthy Windows system, the process tree is predictable. Memorize the expected parents, paths, and instance counts. Anything that deviates is worth investigating.</div>
+  
+  <div class="proc-tree">System (PID 4) — Kernel, no image path, parent: none
+├── smss.exe — Session Manager, C:\Windows\System32\smss.exe
+│   └── <span class="proc-ok">[exits after creating sessions]</span>
+├── csrss.exe (Session 0) — Win32 subsystem, orphaned (parent smss exits)
+├── csrss.exe (Session 1+) — one per interactive session
+├── wininit.exe — orphaned (parent smss exits)
+│   ├── services.exe — Service Control Manager (ONE instance)
+│   │   └── svchost.exe — service host (many instances, all from services.exe)
+│   ├── lsass.exe — credential store (ONE instance, from wininit.exe)
+│   └── lsaiso.exe — Credential Guard (if enabled)
+└── winlogon.exe — handles interactive logons, orphaned
+    ├── dwm.exe — Desktop Window Manager
+    ├── fontdrvhost.exe — font driver
+    └── <span class="proc-ok">userinit.exe → explorer.exe</span> (then userinit exits)
+        └── explorer.exe — user shell</div>
+
+  <div class="h2">Red Flags in the Process Tree</div>
+  <div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+    <tr><th>Process</th><th>Expected</th><th>🚨 Suspicious</th></tr>
+    <tr><td><code>lsass.exe</code></td><td>One instance, parent is wininit.exe, path C:\Windows\System32\lsass.exe, runs as SYSTEM</td><td>Multiple instances, wrong parent, wrong path (e.g. C:\Temp\lsass.exe), unexpected child processes</td></tr>
+    <tr><td><code>svchost.exe</code></td><td>Many instances, ALL parent is services.exe, path C:\Windows\System32\svchost.exe</td><td>Parent is explorer.exe, cmd.exe, or unusual process; running from Temp or AppData</td></tr>
+    <tr><td><code>services.exe</code></td><td>One instance, parent is wininit.exe, SYSTEM account</td><td>Multiple instances, wrong parent, non-SYSTEM account</td></tr>
+    <tr><td><code>powershell.exe</code></td><td>Spawned by user or legitimate automation; interactive use expected</td><td>Parent is Word, Excel, or a web browser; encoded command (-enc); downloadstring pattern; running from Temp</td></tr>
+    <tr><td><code>cmd.exe</code></td><td>User shells, scripts, legitimate automation</td><td>Child of IIS worker (w3wp.exe), Outlook, or other unexpected parent; %COMSPEC% abuse patterns</td></tr>
+    <tr><td><code>explorer.exe</code></td><td>One per interactive user session</td><td>Multiple instances for same user, wrong path, spawning unusual children</td></tr>
+  </table></div>
+
+  <div class="h2">Hunt for This in Velociraptor</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Find svchost.exe NOT parented by services.exe (process injection indicator)</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'dfev1')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">LET</span> proc = <span class="kw">SELECT</span> Pid, Ppid, Name, Exe, CommandLine, Username
+  <span class="kw">FROM</span> <span class="fn">pslist</span>()
+
+<span class="kw">SELECT</span> p.Pid, p.Name, p.Exe, p.Username,
+       parent.Name <span class="kw">AS</span> ParentName, parent.Exe <span class="kw">AS</span> ParentExe
+<span class="kw">FROM</span> proc p
+<span class="kw">JOIN</span> proc parent <span class="kw">ON</span> p.Ppid = parent.Pid
+<span class="kw">WHERE</span> p.Name =~ <span class="str">"svchost.exe"</span>
+  <span class="kw">AND</span> parent.Name !~ <span class="str">"services.exe"</span></div>
+      <div class="vql-result" id="dfev1">
+        <table class="vt">
+          <tr><th>Pid</th><th>Name</th><th>Exe</th><th>Username</th><th>ParentName</th><th>ParentExe</th></tr>
+          <tr><td style="color:var(--ok)">880</td><td>svchost.exe</td><td>C:\Windows\System32\svchost.exe</td><td>SYSTEM</td><td style="color:var(--ok)">services.exe</td><td>C:\Windows\System32\services.exe</td></tr>
+          <tr><td style="color:#c04040"><strong>6421</strong></td><td style="color:#c04040"><strong>svchost.exe</strong></td><td style="color:#c04040"><strong>C:\Temp\svchost.exe</strong></td><td>jsmith</td><td style="color:#c04040"><strong>explorer.exe</strong></td><td>C:\Windows\explorer.exe</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Office apps spawning PowerShell (phishing/maldoc indicator)</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'dfev2')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">LET</span> procs = <span class="kw">SELECT</span> Pid, Ppid, Name, CommandLine <span class="kw">FROM</span> <span class="fn">pslist</span>()
+
+<span class="kw">SELECT</span> child.Pid, child.Name, child.CommandLine,
+       parent.Name <span class="kw">AS</span> Parent
+<span class="kw">FROM</span> procs child
+<span class="kw">JOIN</span> procs parent <span class="kw">ON</span> child.Ppid = parent.Pid
+<span class="kw">WHERE</span> child.Name <span class="kw">=~</span> <span class="str">"powershell|cmd|wscript|mshta|certutil"</span>
+  <span class="kw">AND</span> parent.Name <span class="kw">=~</span> <span class="str">"winword|excel|powerpnt|outlook|msedge"</span></div>
+      <div class="vql-result" id="dfev2">
+        <table class="vt">
+          <tr><th>Pid</th><th>Name</th><th>CommandLine</th><th>Parent</th></tr>
+          <tr><td style="color:#c04040"><strong>9821</strong></td><td style="color:#c04040"><strong>powershell.exe</strong></td><td style="color:#c04040"><strong>powershell -enc JABjAD0ATgBlAHc...</strong></td><td style="color:#c04040"><strong>WINWORD.EXE</strong></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+`;}
+
+/* ══ WINDOWS TELEMETRY ══════════════════════════════════════ */
+function paneTelemetry(){return`
+<div id="tel-tabs" class="tab-bar">
+  <button class="tab active" data-target="tt1">Execution Evidence</button>
+  <button class="tab" data-target="tt2">Persistence Artifacts</button>
+  <button class="tab" data-target="tt3">Lateral Movement</button>
+  <button class="tab" data-target="tt4">Anti-Forensics</button>
+</div>
+
+<!-- TAB 1: Execution Evidence -->
+<div id="tt1" class="sp active">
+  <div class="banner-violet"><strong>Execution artifacts answer the hardest question:</strong> "Did this malware actually run on this machine?" Each artifact below provides independent, corroborating evidence of execution — attackers rarely think to clean all of them.</div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-name">Windows.Forensics.Prefetch → C:\Windows\Prefetch\*.pf</div>
+    <div class="telemetry-what">What it is: Windows pre-loads code pages of frequently used applications to speed up launching. It monitors every file and directory referenced by each application and records this in a .pf file.</div>
+    <div class="telemetry-why">Forensic value: <strong>Proves an executable ran at a specific time.</strong> Each .pf file records the first and last execution time, last 8 execution times (Win8+), total run count, and all files/directories the application accessed. This includes DLLs loaded, config files read, and staging directories accessed — often revealing the attacker's working directory.</div>
+    <div class="telemetry-find">🔍 Hunt for: Prefetch files with suspicious names (mimikatz, cobalt, psexec, procdump) or with creation times that align with your incident timeline. Prefetch is disabled on Windows Server by default — its presence may indicate it was manually enabled or a server was used as a workstation.</div>
+  </div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-name">Windows.Forensics.Amcache → C:\Windows\AppCompat\Programs\Amcache.hve</div>
+    <div class="telemetry-what">What it is: A registry hive that tracks installed applications, programs executed or present on disk, drivers loaded, and device information. Available Win7+.</div>
+    <div class="telemetry-why">Forensic value: <strong>Records the SHA1 hash of every executable it tracks</strong> — unique among execution artifacts. This allows you to submit hashes to VirusTotal without transferring the actual binary. Also records the first time an executable was seen/run, which survives even after the binary is deleted.</div>
+    <div class="telemetry-find">🔍 Hunt for: SHA1 hashes that match known malware. Executables that appeared on-disk for a brief window and were then deleted. Programs running from unusual paths (Temp, AppData, Recycle Bin).</div>
+  </div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-name">Windows.Forensics.ShimCache → SYSTEM Hive → AppCompatCache</div>
+    <div class="telemetry-what">What it is: The Windows Application Compatibility Database tracks executables for potential compatibility challenges. Records the file path and last-modified time of executables. Present even on Server editions.</div>
+    <div class="telemetry-why">Forensic value: <strong>Survives when other execution artifacts are missing.</strong> Particularly useful on Windows Servers where Prefetch is disabled. Presence in ShimCache indicates the file existed on disk. Note: on post-XP systems, the existence of an entry does NOT conclusively prove execution — it may be preemptively added by scanning. Use in conjunction with other artifacts.</div>
+    <div class="telemetry-find">🔍 Hunt for: Executables in ShimCache that don't exist on disk anymore (deleted after execution). Files running from anomalous paths. Entries with timestamps that align with the incident window.</div>
+  </div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-name">Windows.Forensics.SRUM → C:\Windows\System32\SRU\SRUDB.dat</div>
+    <div class="telemetry-what">What it is: System Resource Usage Monitor records 30–60 days of historical system performance including applications run, user account responsible, network connections made, and bytes sent/received per application per hour. Win8+.</div>
+    <div class="telemetry-why">Forensic value: <strong>Historical timeline spanning weeks, not hours.</strong> Unlike most artifacts, SRUM's data extends back 30–60 days. Network data usage table shows exactly which process sent data to which external IP — this can expose data exfiltration events that occurred before the incident was detected. Survives malware deletion of the binary because the record already exists in the ESE database.</div>
+    <div class="telemetry-find">🔍 Hunt for: Processes that transferred large amounts of data to external IPs during off-hours. Application Resource Usage entries for tools that should never run (PsExec, Mimikatz). Accounts running processes they should not own.</div>
+  </div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-name">Windows.Forensics.Bam → SYSTEM Hive → Services\bam\UserSettings\{SID}</div>
+    <div class="telemetry-what">What it is: Background Activity Monitor (BAM) is maintained by the Windows power management subsystem. Available Win10+. Records the last execution time of executables per user SID.</div>
+    <div class="telemetry-why">Forensic value: <strong>Last execution time per user, per executable</strong> — typically holds up to one week of data. Critically, it records full path of the executable, making it easy to spot malware running from anomalous locations. Harder for attackers to clear than event logs.</div>
+    <div class="telemetry-find">🔍 Hunt for: Tools associated with ransomware or post-exploitation (vssadmin, bcdedit, wbadmin, net use) with execution timestamps that align with the incident. Executables running from user-writable directories.</div>
+  </div>
+
+  <div class="h3">Using Velociraptor to Corroborate Execution</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Cross-reference Prefetch + Amcache for a suspicious executable name</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'tel1')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Step 1: Check Prefetch for execution evidence</span>
+<span class="kw">SELECT</span> Name, LastRunTime, RunCount, Hash
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Prefetch</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"mimikatz|mimi|sekurlsa|lsadump"</span>
+
+<span class="cmt">-- Step 2: Check Amcache for the same binary (gets SHA1 hash)</span>
+<span class="kw">SELECT</span> Name, SHA1, FileSize, FileDescription, ProductName, LinkDate
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Amcache</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"mimikatz"</span></div>
+      <div class="vql-result" id="tel1">
+        <table class="vt">
+          <tr><th colspan="4" style="background:#1a1d2e;color:#c04040">⚠ PREFETCH — Execution Confirmed</th></tr>
+          <tr><th>Name</th><th>LastRunTime</th><th>RunCount</th><th>Hash</th></tr>
+          <tr><td style="color:#c04040"><strong>MIMIKATZ.EXE-B7A13E13.pf</strong></td><td style="color:#c04040">2025-03-24 09:44:11</td><td>3</td><td>B7A13E13</td></tr>
+          <tr><th colspan="4" style="background:#1a1d2e;color:#c04040;margin-top:4px">⚠ AMCACHE — SHA1 for VirusTotal</th></tr>
+          <tr><th>Name</th><th>SHA1</th><th>FileSize</th><th>LinkDate</th></tr>
+          <tr><td style="color:#c04040"><strong>mimikatz.exe</strong></td><td style="color:#c04040">e18adf5da01f4...</td><td>1,250,304</td><td>2024-10-14</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Persistence Artifacts -->
+<div id="tt2" class="sp">
+  <div class="banner"><strong>Persistence = attacker foothold.</strong> Attackers establish persistence so they survive reboots and retain access even if the initial breach vector is patched. Every persistence mechanism leaves traces Velociraptor can find.</div>
+  
+  <div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+    <tr><th>Mechanism</th><th>Location</th><th>Velociraptor Artifact</th><th>What to Hunt For</th></tr>
+    <tr><td>Registry Run Keys</td><td>HKLM/HKCU\Software\Microsoft\Windows\CurrentVersion\Run</td><td>Windows.Sys.StartupItems</td><td>Executables in Temp, AppData, or with encoded commands</td></tr>
+    <tr><td>Scheduled Tasks</td><td>C:\Windows\System32\Tasks\ + Event ID 4698</td><td>Windows.System.ScheduledTasks</td><td>Tasks with no author, Base64 PowerShell, or triggers at unusual times</td></tr>
+    <tr><td>Windows Services</td><td>HKLM\SYSTEM\CurrentControlSet\Services + Event ID 7045</td><td>Windows.System.Services</td><td>Services with random names, running from user-writable paths, signed by unknown publishers</td></tr>
+    <tr><td>Startup Folders</td><td>%APPDATA%\Roaming\Microsoft\Windows\Start Menu\Programs\Startup</td><td>Windows.Sys.StartupItems</td><td>Any unexpected .exe, .vbs, .ps1, or .lnk file</td></tr>
+    <tr><td>WMI Event Subscriptions</td><td>WMI namespace: root\subscription</td><td>Windows.Persistence.PermanentWMIEvents</td><td>EventConsumer + EventFilter + FilterToConsumerBinding = full WMI backdoor</td></tr>
+    <tr><td>DLL Hijacking</td><td>Application directory — DLL before system32 in search order</td><td>Custom glob + hash verification</td><td>DLLs in application directories that don't match Microsoft signatures</td></tr>
+    <tr><td>Boot/Pre-OS (Bootkit)</td><td>MBR, VBR, UEFI</td><td>Advanced — requires raw disk access</td><td>MBR that doesn't match known-good hash</td></tr>
+  </table></div>
+
+  <div class="h3">Ransomware Persistence Patterns</div>
+  <div class="banner-red"><strong>Ransomware actors rarely use exotic persistence.</strong> They rely on the most reliable, least-detected methods: scheduled tasks with encoded commands, services, and registry run keys. Hunt these aggressively at the start of any ransomware investigation.</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Hunt for suspicious scheduled tasks with Base64 or download commands</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'tel2')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> Name, Command, Arguments, State, TriggersDisplay, Author, CreationDate
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.System.ScheduledTasks</span>()
+<span class="kw">WHERE</span> Command <span class="kw">=~</span> <span class="str">"powershell|cmd|wscript|mshta"</span>
+  <span class="kw">AND</span> (Arguments <span class="kw">=~</span> <span class="str">"-enc|-encoded|downloadstring|iex|bypass|hidden"</span>
+    <span class="kw">OR</span> Author = <span class="str">""</span>)</div>
+      <div class="vql-result" id="tel2">
+        <table class="vt">
+          <tr><th>Name</th><th>Command</th><th>Arguments</th><th>Author</th></tr>
+          <tr><td style="color:#c04040"><strong>WindowsUpdate_svc</strong></td><td>powershell.exe</td><td style="color:#c04040">-enc JABjAD0ATgBlAHcALQBPAGIAagBlAGMAdAA...</td><td style="color:#c04040">(blank)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Lateral Movement -->
+<div id="tt3" class="sp">
+  <div class="banner-red"><strong>Lateral movement is an inescapable requirement for attackers.</strong> Every adversary — even the most skilled — must move between systems to accomplish their objectives. Understanding the artifacts it leaves is critical to scoping an incident.</div>
+  
+  <div class="h3">Common Lateral Movement Methods + Evidence</div>
+  <div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+    <tr><th>Technique</th><th>Common Tools</th><th>Evidence Left</th><th>Key Event IDs</th></tr>
+    <tr><td><strong>Remote Desktop (RDP)</strong></td><td>mstsc.exe, native RDP</td><td>Event 4624 (Type 10), 4778/4779, RDP cache bitmaps at %LOCALAPPDATA%\Microsoft\Terminal Server Client\Cache\</td><td>4624, 4625, 4778, 4779, 5156</td></tr>
+    <tr><td><strong>SMB / PsExec</strong></td><td>PsExec, Impacket smbexec</td><td>PSEXESVC.exe created on target, Event 7045 (service install), Event 4624 (Type 3), PsExec key file in C:\Windows\</td><td>4624, 7045, 5140</td></tr>
+    <tr><td><strong>WMI</strong></td><td>wmic.exe, Impacket wmiexec</td><td>WMI provider host (WmiPrvSE.exe) spawning unusual children, Event 4624 (Type 3)</td><td>4624, 4688</td></tr>
+    <tr><td><strong>WinRM / WinRS</strong></td><td>Enter-PSSession, winrs.exe, Evil-WinRM</td><td>wsmprovhost.exe as parent of attacker commands, PowerShell remoting logs</td><td>4624 (Type 3), 4688</td></tr>
+    <tr><td><strong>Pass-the-Hash</strong></td><td>Mimikatz, Impacket</td><td>Event 4624 (Type 3) with no corresponding 4648; NTLMv2 authentication without prior credential entry</td><td>4624, 4776</td></tr>
+    <tr><td><strong>Pass-the-Ticket</strong></td><td>Mimikatz, Rubeus</td><td>Kerberos TGT/TGS requests from unusual source IP, Event 4768/4769 with anomalous encryption type</td><td>4768, 4769</td></tr>
+  </table></div>
+
+  <div class="h3">LSASS Credential Dumping — The Gateway to Lateral Movement</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><span class="ct ct-r">!</span> What LSASS Is</div>
+      <p class="p">LSASS (Local Security Authority Subsystem Service) authenticates all users on the system and stores credentials in its virtual memory pages — including NTLM hashes and, if WDigest is enabled, cleartext passwords.</p>
+      <p class="p" style="margin-bottom:0">Attackers dump LSASS memory to extract these credentials and then use them for lateral movement without needing to know any cleartext passwords.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct ct-o">⚒</span> Common Dump Tools</div>
+      <ul class="vl">
+        <li>Windows Task Manager (creates lsass.DMP)</li>
+        <li>ProcDump: <code>procdump -ma lsass.exe</code></li>
+        <li>Comsvcs.dll: <code>rundll32 comsvcs.dll MiniDump [PID] lsass.dmp full</code></li>
+        <li>Mimikatz: <code>sekurlsa::logonpasswords</code></li>
+        <li>Process Hacker, Process Explorer (GUI tools)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Hunt for LSASS dump files and rundll32/comsvcs abuse</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'tel3')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Find lsass dump files anywhere on disk</span>
+<span class="kw">SELECT</span> FullPath, Size, Mtime, Atime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=[<span class="str">"C:/**/*.dmp"</span>, <span class="str">"C:/**/*.DMP"</span>], accessor=<span class="str">"ntfs"</span>)
+<span class="kw">WHERE</span> FullPath <span class="kw">=~</span> <span class="str">"lsass"</span>
+
+<span class="cmt">-- Also: hunt event logs for comsvcs pattern</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time, EventData.CommandLine <span class="kw">AS</span> CMD
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4688</span>
+  <span class="kw">AND</span> EventData.CommandLine <span class="kw">=~</span> <span class="str">"comsvcs|MiniDump|procdump"</span></div>
+      <div class="vql-result" id="tel3">
+        <table class="vt">
+          <tr><th>FullPath</th><th>Size</th><th>Mtime</th></tr>
+          <tr><td style="color:#c04040"><strong>C:\Windows\Temp\lsass.dmp</strong></td><td>55,447,552</td><td style="color:#c04040">2025-03-24 09:48:32</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Anti-Forensics -->
+<div id="tt4" class="sp">
+  <div class="banner-red"><strong>Anti-forensics leaves its own evidence.</strong> Attackers who try to erase their tracks almost always leave traces of the erasure itself. Know what they try to erase — and how to find the proof that they did it.</div>
+  
+  <div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+    <tr><th>Anti-Forensic Action</th><th>Tool/Command Used</th><th>Evidence It Leaves</th><th>How to Detect</th></tr>
+    <tr><td>Clear Windows Event Logs</td><td>wevtutil cl, Event Viewer, PowerShell Clear-EventLog</td><td><strong>Event ID 1102</strong> (Security log cleared), Event ID 104 (System log cleared)</td><td>Hunt 1102/104 before incident window; gap in event log timestamps</td></tr>
+    <tr><td>Delete VSS (Shadow Copies)</td><td>vssadmin delete shadows /all, bcdedit, wbadmin</td><td>VSS deletion logged; Prefetch for vssadmin.exe; SRUM records the tool execution</td><td>Windows.Forensics.Prefetch for vssadmin; hunt Event 524/7036</td></tr>
+    <tr><td>Timestomping</td><td>Metasploit timestomp, custom tools</td><td>NTFS $STANDARD_INFO timestamps (visible to Explorer) vs $FILE_NAME timestamps (written by NTFS, harder to fake) are inconsistent</td><td>parse_mft() — compare $SI vs $FN timestamps; discrepancy = tampering</td></tr>
+    <tr><td>Delete Files</td><td>del, rm, sdelete, cipher /w</td><td>MFT record (marks file as unallocated but metadata often survives), USN Journal records the deletion, Recycle Bin metadata ($I files)</td><td>parse_mft(), parse_usn(), Windows.Forensics.RecycleBin</td></tr>
+    <tr><td>Disable Windows Defender / AV</td><td>Set-MpPreference, sc stop, reg delete</td><td>Event 5001/5004 (Defender disabled), WMI disable events, registry modification in HKLM\SOFTWARE\Policies\Microsoft\Windows Defender</td><td>EvtxHunter for Event 5001/5004; Windows.Sys.Services for disabled AV services</td></tr>
+    <tr><td>Remove Persistence</td><td>reg delete, schtasks /delete</td><td>Event 4699 (scheduled task deleted), USN Journal records registry file modifications, ShimCache may retain the deleted binary</td><td>Hunt 4699 before incident window; compare ShimCache entries to running services</td></tr>
+  </table></div>
+
+  <div class="h3">The USN Change Journal — The Anti-Anti-Forensics Tool</div>
+  <div class="banner-teal"><strong>The NTFS USN Change Journal</strong> records every file system operation — create, modify, rename, delete — in a circular log that can extend back days or weeks. Even if an attacker deletes files and clears the Recycle Bin, the USN Journal has a record of it.</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Parse USN Journal to find recently deleted executables</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'tel4')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> TimeStamp, Filename, Reason, MFTId
+<span class="kw">FROM</span> <span class="fn">parse_usn</span>(device=<span class="str">"\\\.\\C:"</span>)
+<span class="kw">WHERE</span> Filename <span class="kw">=~</span> <span class="str">"\\.exe$|\\.dll$|\\.ps1$"</span>
+  <span class="kw">AND</span> Reason <span class="kw">=~</span> <span class="str">"DELETE"</span>
+  <span class="kw">AND</span> TimeStamp > <span class="str">"2025-03-24T00:00:00Z"</span>
+<span class="kw">ORDER BY</span> TimeStamp <span class="kw">DESC</span></div>
+      <div class="vql-result" id="tel4">
+        <table class="vt">
+          <tr><th>TimeStamp</th><th>Filename</th><th>Reason</th><th>MFTId</th></tr>
+          <tr><td>2025-03-24 09:52:18</td><td style="color:#c04040"><strong>mimikatz.exe</strong></td><td>FILE_DELETE</td><td>142857</td></tr>
+          <tr><td>2025-03-24 09:52:20</td><td style="color:#c04040"><strong>procdump64.exe</strong></td><td>FILE_DELETE</td><td>142858</td></tr>
+          <tr><td>2025-03-24 09:52:21</td><td style="color:#c04040"><strong>lsass.dmp</strong></td><td>FILE_DELETE</td><td>142859</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+`;}
+
+/* ══ IR LIFECYCLE ════════════════════════════════════════════ */
+function paneIrLifecycle(){return`
+<div class="banner-violet"><strong>The PICERL model</strong> (from SANS FOR508) is the industry-standard incident response lifecycle. Understanding it helps you know what you should be doing at each phase — and where Velociraptor fits. IR is not linear; phases often run concurrently and you may loop back.</div>
+
+<div class="phase-grid">
+  <div class="phase-card" style="border-top:4px solid #4a8fff">
+    <div class="phase-num" style="color:#4a8fff">1</div>
+    <div class="phase-name" style="color:#4a8fff">Preparation</div>
+    <div class="phase-desc">Getting the team and tooling ready BEFORE an incident occurs. Defining playbooks, deploying monitoring, establishing baselines.</div>
+    <div class="phase-velo" style="background:rgba(26,171,138,.1);color:var(--teal)">Deploy Velociraptor agents fleet-wide. Configure CLIENT_EVENT monitoring. Write triage artifacts. Test offline collectors.</div>
+  </div>
+  <div class="phase-card" style="border-top:4px solid var(--orange)">
+    <div class="phase-num" style="color:var(--orange)">2</div>
+    <div class="phase-name" style="color:var(--orange)">Identification</div>
+    <div class="phase-desc">Determining whether an event is an incident and establishing its scope. "Is this real? How bad is it? Which systems are affected?"</div>
+    <div class="phase-velo" style="background:rgba(232,131,10,.08);color:var(--orange)">Trigger triage collection on alerted hosts. Hunt IOCs fleet-wide. Enumerate scope via process and network artifact analysis.</div>
+  </div>
+  <div class="phase-card" style="border-top:4px solid #c04040">
+    <div class="phase-num" style="color:#c04040">3</div>
+    <div class="phase-name" style="color:#c04040">Containment</div>
+    <div class="phase-desc">Limiting damage while balancing investigative needs vs business impact. Isolate but preserve evidence. Stop lateral movement.</div>
+    <div class="phase-velo" style="background:rgba(200,40,40,.08);color:#c04040">Host quarantine via Velociraptor client isolation. Kill malicious processes. Deploy network blocking artifacts. Continue evidence collection on isolated hosts.</div>
+  </div>
+  <div class="phase-card" style="border-top:4px solid var(--warn)">
+    <div class="phase-num" style="color:var(--warn)">4</div>
+    <div class="phase-name" style="color:var(--warn)">Eradication</div>
+    <div class="phase-desc">Removing the infection, all persistence mechanisms, and attack vectors. Ensuring attackers have NO remaining foothold.</div>
+    <div class="phase-velo" style="background:rgba(200,100,0,.08);color:var(--warn)">Hunt all persistence mechanisms fleet-wide. Verify eradication with artifact re-collection. Remove malicious scheduled tasks, services, registry keys.</div>
+  </div>
+  <div class="phase-card" style="border-top:4px solid var(--ok)">
+    <div class="phase-num" style="color:var(--ok)">5</div>
+    <div class="phase-name" style="color:var(--ok)">Recovery</div>
+    <div class="phase-desc">Safely returning systems to production ONLY after fully verifying they are clean and hardened against re-compromise.</div>
+    <div class="phase-velo" style="background:rgba(26,171,60,.08);color:var(--ok)">Post-recovery collection to verify clean state. Validate new controls (patched vulns, hardened configs). Monitor for re-infection indicators.</div>
+  </div>
+  <div class="phase-card" style="border-top:4px solid #7c3aed">
+    <div class="phase-num" style="color:#7c3aed">6</div>
+    <div class="phase-name" style="color:#7c3aed">Lessons Learned</div>
+    <div class="phase-desc">Critical retrospective: what worked, what failed, what needs to change. This drives the next Preparation phase.</div>
+    <div class="phase-velo" style="background:rgba(124,58,237,.08);color:#7c3aed">Export Velociraptor Notebooks as HTML reports. Review hunt coverage gaps. Write new artifacts for previously undetected TTPs.</div>
+  </div>
+</div>
+
+<div class="h2">Where Velociraptor Fits — Phase by Phase</div>
+<div class="tbl-wrap" style="margin-bottom:14px"><table class="vt">
+  <tr><th>Phase</th><th>Key Questions</th><th>Velociraptor Actions</th><th>Key Artifacts</th></tr>
+  <tr><td><strong>Preparation</strong></td><td>Are we instrumented? Can we collect quickly when needed?</td><td>Deploy agents, configure CLIENT_EVENT, build artifact library, test offline collectors</td><td>Windows.Events.ProcessCreation, Windows.Events.DNSQueries</td></tr>
+  <tr><td><strong>Identification</strong></td><td>Is this real? What systems are impacted? What is the initial access vector?</td><td>Triage collection, fleet-wide IOC hunting, process/network snapshot</td><td>Windows.System.Pslist, Windows.Network.Netstat, Windows.EventLogs.EvtxHunter</td></tr>
+  <tr><td><strong>Containment</strong></td><td>How do we stop spread without losing evidence?</td><td>Quarantine hosts, kill PIDs, collect memory before shutdown, deploy network block artifacts</td><td>Windows.Remediation.Quarantine, process collection with --dump</td></tr>
+  <tr><td><strong>Eradication</strong></td><td>Did we find everything? Is there any remaining access?</td><td>Hunt all persistence mechanisms, validate removals, verify no lateral movement paths remain</td><td>Windows.Sys.StartupItems, Windows.System.ScheduledTasks, Windows.System.Services</td></tr>
+  <tr><td><strong>Recovery</strong></td><td>Is the environment truly clean? Are new controls working?</td><td>Post-recovery artifact collection, Sigma monitoring for recurrence, baseline comparison</td><td>Windows.Sigma.Base, all persistence artifacts</td></tr>
+  <tr><td><strong>Lessons Learned</strong></td><td>What blind spots did we have? What new detections do we need?</td><td>Review hunt results, write new VQL for missed TTPs, update artifact library</td><td>All — gap analysis of what was and wasn't collected</td></tr>
+</table></div>
+
+<div class="h2">Ransomware Attack Lifecycle — Where Evidence Lives</div>
+<div class="banner"><strong>Ransomware is an outcome, not an attack.</strong> By the time encryption starts, the attacker has typically been in the network for days or weeks. The real investigation is reconstructing everything that happened before the encryption event.</div>
+
+<div class="killchain">
+  <div class="kc-step"><span class="kc-icon">📧</span><span class="kc-label">Initial Access</span></div>
+  <div class="kc-step"><span class="kc-icon">⚡</span><span class="kc-label">Execution</span></div>
+  <div class="kc-step"><span class="kc-icon">🔒</span><span class="kc-label">Persistence</span></div>
+  <div class="kc-step"><span class="kc-icon">👑</span><span class="kc-label">Privilege Escalation</span></div>
+  <div class="kc-step"><span class="kc-icon">🛡</span><span class="kc-label">Defense Evasion</span></div>
+  <div class="kc-step"><span class="kc-icon">🔑</span><span class="kc-label">Credential Theft</span></div>
+  <div class="kc-step"><span class="kc-icon">🔎</span><span class="kc-label">Discovery / Recon</span></div>
+  <div class="kc-step"><span class="kc-icon">↔️</span><span class="kc-label">Lateral Movement</span></div>
+  <div class="kc-step"><span class="kc-icon">📤</span><span class="kc-label">Exfiltration</span></div>
+  <div class="kc-step highlight"><span class="kc-icon">💥</span><span class="kc-label">Encryption</span></div>
+</div>
+
+<div class="tbl-wrap"><table class="vt">
+  <tr><th>Stage</th><th>Common Methods</th><th>Evidence in Velociraptor</th></tr>
+  <tr><td>Initial Access</td><td>Phishing, RDP brute force, VPN exploitation, supply chain</td><td>Event 4625 (failed logons), 4624 Type 10 (RDP), IIS logs, Prefetch for browser/email clients</td></tr>
+  <tr><td>Execution</td><td>PowerShell, cmd, WMI, MSHTA, certutil decode</td><td>Event 4688 (process creation), PowerShell script block logs (4103/4104), Prefetch</td></tr>
+  <tr><td>Persistence</td><td>Scheduled tasks, services, registry run keys, WMI subscriptions</td><td>Windows.System.ScheduledTasks, Windows.System.Services, Windows.Sys.StartupItems</td></tr>
+  <tr><td>Credential Theft</td><td>Mimikatz, LSASS dumping, DCSync, NTDS.dit extraction</td><td>Event 4624/4648/4776, lsass.dmp in Temp, procdump Prefetch, SRUM for rundll32 activity</td></tr>
+  <tr><td>Discovery</td><td>Advanced IP Scanner, netscan, AdFind, BloodHound, nltest</td><td>Prefetch for scanner tools, SRUM network data, Event 4688 for recon commands</td></tr>
+  <tr><td>Lateral Movement</td><td>PsExec, RDP, WMI, WinRM, SMB pass-the-hash</td><td>Event 4624/7045, PSEXESVC in USN Journal, RDP cache bitmaps, ShimCache on destination</td></tr>
+  <tr><td>Exfiltration</td><td>Rclone, WinSCP, Mega, custom tools, cloud storage</td><td>SRUM network data per process (bytes out), Prefetch for exfil tools, DNS queries for cloud storage</td></tr>
+  <tr><td>Encryption</td><td>LockBit, BlackCat/ALPHV, Cl0p, custom encryptors</td><td>vssadmin/bcdedit in BAM/Prefetch, encryptor binary in Amcache, file extension changes in USN Journal</td></tr>
+</table></div>
+`;}
+
+function paneQuickstart(){return`
+<div class="banner"><strong>Zero-install.</strong> Velociraptor is a single static binary. Download it, make it executable, and run. No database, no dependencies, no installer required.</div>
+<div class="h2">1 — Download the binary</div>
+<div class="cb"><button class="copy-btn">Copy</button><span class="cmt"># Find the latest release at:</span>
+https://github.com/Velocidex/velociraptor/releases
+
+<span class="cmt"># Linux (make executable)</span>
+chmod +x velociraptor-linux-amd64
+
+<span class="cmt"># macOS</span>
+chmod +x velociraptor-darwin-amd64
+
+<span class="cmt"># Windows — just run the .exe</span></div>
+<div class="h2">2 — Launch the instant GUI</div>
+<div class="cb"><button class="copy-btn">Copy</button><span class="cmt"># All-in-one: server + client + GUI in one command</span>
+<span class="fn">velociraptor</span> gui
+
+<span class="cmt"># Opens your browser at https://localhost:8889</span>
+<span class="cmt"># Default credentials: admin / password</span>
+<span class="cmt"># Temp data store created automatically — nothing permanent</span></div>
+<div class="h2">3 — Generate a production server config</div>
+<div class="cb"><button class="copy-btn">Copy</button><span class="cmt"># Interactive wizard — sets TLS, data store path, ports</span>
+<span class="fn">velociraptor</span> config generate -i
+
+<span class="cmt"># Start the frontend server (verbose logging)</span>
+<span class="fn">velociraptor</span> --config server.config.yaml frontend -v
+
+<span class="cmt"># Create the first admin user</span>
+<span class="fn">velociraptor</span> --config server.config.yaml user add admin --role administrator</div>
+<div class="h2">4 — Run your first VQL query</div>
+<div class="vql-demo">
+  <div class="vql-hdr">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+      <span class="vql-name">Notebook — Cell 1 — List running processes</span>
+    </div>
+    <button class="run-btn" onclick="runVQL(this,'qs1')">▶ Run</button>
+  </div>
+  <div class="vql-body">
+    <div class="cb" style="margin:0"><span class="kw">SELECT</span> Name, Pid, CommandLine <span class="kw">FROM</span> <span class="fn">pslist</span>()</div>
+    <div class="vql-result" id="qs1">
+      <table class="vt"><tr><th>Name</th><th>Pid</th><th>CommandLine</th></tr>
+      <tr><td>velociraptor.exe</td><td>4821</td><td>velociraptor gui</td></tr>
+      <tr><td>chrome.exe</td><td>2340</td><td>C:\Program Files\Chrome\chrome.exe</td></tr>
+      <tr><td>svchost.exe</td><td>880</td><td>C:\Windows\System32\svchost.exe -k netsvcs</td></tr>
+      <tr><td>powershell.exe</td><td>5512</td><td>powershell.exe -ExecutionPolicy Bypass</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="h2">5 — Install client as a service</div>
+<div class="cb"><button class="copy-btn">Copy</button><span class="cmt"># Windows (run as Administrator)</span>
+<span class="fn">velociraptor</span> --config client.config.yaml service install
+
+<span class="cmt"># Linux (creates systemd unit)</span>
+<span class="fn">velociraptor</span> --config client.config.yaml service install
+sudo systemctl enable velociraptor_client
+sudo systemctl start velociraptor_client</div>`;}
+
+function paneArchitecture(){return`
+<div class="h2">Component Overview</div>
+<div class="card">
+  <div style="display:flex;align-items:stretch;gap:4px;flex-wrap:wrap">
+    <div class="arch-box" style="background:rgba(232,131,10,.1);border:1px solid rgba(232,131,10,.25)">
+      <div class="ab-t" style="color:var(--orange)">GUI / API</div>
+      <div class="ab-s">HTTPS :8889<br>gRPC API :8001</div>
+    </div>
+    <div class="arch-arrow">⇕</div>
+    <div class="arch-box" style="background:rgba(26,171,138,.1);border:1px solid rgba(26,171,138,.25)">
+      <div class="ab-t" style="color:var(--teal)">Frontend Server</div>
+      <div class="ab-s">TLS :8000<br>VQL Engine</div>
+    </div>
+    <div class="arch-arrow">⇕</div>
+    <div class="arch-box" style="background:rgba(26,83,200,.1);border:1px solid rgba(26,83,200,.25)">
+      <div class="ab-t" style="color:#4a8fff">Data Store</div>
+      <div class="ab-s">Flat files<br>No external DB</div>
+    </div>
+    <div class="arch-arrow">⇕</div>
+    <div class="arch-box" style="background:rgba(200,40,40,.08);border:1px solid rgba(200,40,40,.2)">
+      <div class="ab-t" style="color:#c04040">Clients</div>
+      <div class="ab-s">Persistent agents<br>VQL executor</div>
+    </div>
+  </div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◆</span> Design Decisions</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Decision</th><th>Rationale</th></tr>
+      <tr><td>Single binary</td><td>Zero install friction on endpoints</td></tr>
+      <tr><td>Flat file datastore</td><td>No Elasticsearch/Postgres dependency</td></tr>
+      <tr><td>mTLS everywhere</td><td>Client authentication + encryption</td></tr>
+      <tr><td>VQL runs on client</td><td>Compute at edge, only results sent back</td></tr>
+      <tr><td>Streaming results</td><td>Handles very large artifact outputs safely</td></tr>
+      <tr><td>Go language</td><td>Single static binary for all platforms</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-r">🔒</span> Security Model</div>
+    <ul class="vl">
+      <li>Mutual TLS (mTLS) between server and all clients</li>
+      <li>Server config holds private CA — store it securely</li>
+      <li>Client config embeds server cert pin</li>
+      <li>GUI protected by username + optional TOTP 2FA</li>
+      <li>Role-based ACLs: Administrator, Investigator, Analyst, API, Reader</li>
+      <li>Org-level tenant isolation for MSSP deployments</li>
+      <li>API keys with scoped certificate-based credentials</li>
+      <li>Audit log of all user actions and collections</li>
+    </ul>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-o">⬡</span> Multi-Frontend Scaling</div>
+  <div class="p">For deployments beyond ~15,000 clients, Velociraptor supports multi-frontend mode. Multiple frontend nodes share a replicated data store, and a load balancer distributes client connections. Each node handles ~15K clients independently.</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="pill p-t">Frontend 1 → ~15K clients</span>
+    <span class="pill p-t">Frontend 2 → ~15K clients</span>
+    <span class="pill p-t">Frontend N → ~15K clients</span>
+    <span class="pill p-o">Shared replicated data store</span>
+    <span class="pill p-b">Load balancer (ALB / nginx)</span>
+  </div>
+</div>`;}
+
+function paneVQL(){return`
+<div id="vql-tabs" class="tab-bar">
+  <button class="tab active" data-target="vt1">Syntax Basics</button>
+  <button class="tab" data-target="vt2">Plugins</button>
+  <button class="tab" data-target="vt3">Live Examples</button>
+  <button class="tab" data-target="vt4">Advanced VQL</button>
+</div>
+<div id="vt1" class="sp active">
+  <div class="banner"><strong>VQL</strong> is a SQL-like query language purpose-built for DFIR. Queries run on the endpoint (or server) and return rows of forensic data from <em>plugins</em>.</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="kw">SELECT</span> col1, col2       <span class="cmt">-- fields to return (* for all)</span>
+<span class="kw">FROM</span>   <span class="fn">plugin_name</span>(arg=<span class="str">'value'</span>)  <span class="cmt">-- data source plugin</span>
+<span class="kw">WHERE</span>  condition         <span class="cmt">-- filter rows</span>
+<span class="kw">ORDER BY</span> col1 <span class="kw">DESC</span>     <span class="cmt">-- sort results</span>
+<span class="kw">LIMIT</span>  100              <span class="cmt">-- cap row count</span></div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Clause / Operator</th><th>Purpose</th><th>Example</th></tr>
+    <tr><td><code>SELECT</code></td><td>Choose output columns</td><td>SELECT Name, Pid</td></tr>
+    <tr><td><code>FROM</code></td><td>Name the plugin or artifact</td><td>FROM pslist()</td></tr>
+    <tr><td><code>WHERE</code></td><td>Filter rows</td><td>WHERE Pid &gt; 1000</td></tr>
+    <tr><td><code>LET</code></td><td>Define a named sub-query or variable</td><td>LET x = SELECT ...</td></tr>
+    <tr><td><code>GROUP BY</code></td><td>Aggregate rows</td><td>GROUP BY Name</td></tr>
+    <tr><td><code>ORDER BY</code></td><td>Sort results</td><td>ORDER BY Mtime DESC</td></tr>
+    <tr><td><code>LIMIT</code></td><td>Cap row count</td><td>LIMIT 100</td></tr>
+    <tr><td><code>=~</code></td><td>Regex match (case-insensitive)</td><td>Name =~ "svc"</td></tr>
+    <tr><td><code>!~</code></td><td>Regex NOT match</td><td>Name !~ "system"</td></tr>
+    <tr><td><code>AS</code></td><td>Alias a column</td><td>hash(...).MD5 AS MD5</td></tr>
+    <tr><td><code>foreach()</code></td><td>Iterate sub-queries over rows</td><td>SELECT * FROM foreach(...)</td></tr>
+  </table></div>
+</div>
+<div id="vt2" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Plugin</th><th>Category</th><th>Description</th></tr>
+    <tr><td><code>pslist()</code></td><td><span class="pill p-o">Process</span></td><td>Running processes: PID, PPID, name, cmdline, create time</td></tr>
+    <tr><td><code>netstat()</code></td><td><span class="pill p-o">Network</span></td><td>Network connections and listening ports with owning PID</td></tr>
+    <tr><td><code>glob(globs=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>Wildcard file search — supports **, *, ? patterns</td></tr>
+    <tr><td><code>stat(filename=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>File metadata: size, timestamps, permissions, owner</td></tr>
+    <tr><td><code>read_file(filename=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>Read file contents as string or bytes</td></tr>
+    <tr><td><code>hash(path=...)</code></td><td><span class="pill p-t">Filesystem</span></td><td>Compute MD5 / SHA1 / SHA256 of a file</td></tr>
+    <tr><td><code>parse_evtx(filename=...)</code></td><td><span class="pill p-b">Event Logs</span></td><td>Parse Windows .evtx event log files</td></tr>
+    <tr><td><code>parse_mft()</code></td><td><span class="pill p-b">NTFS</span></td><td>Parse NTFS MFT — full filesystem timeline including deleted</td></tr>
+    <tr><td><code>parse_usn(device=...)</code></td><td><span class="pill p-b">NTFS</span></td><td>Parse USN Change Journal for file activity history</td></tr>
+    <tr><td><code>yara(rules=..., files=...)</code></td><td><span class="pill p-r">Detection</span></td><td>Scan files or process memory with YARA rules</td></tr>
+    <tr><td><code>sigma(rules=...)</code></td><td><span class="pill p-r">Detection</span></td><td>Apply Sigma detection rules to log data</td></tr>
+    <tr><td><code>wmi(query=...)</code></td><td><span class="pill p-o">Windows</span></td><td>Execute WMI queries on Windows</td></tr>
+    <tr><td><code>environ()</code></td><td><span class="pill p-o">System</span></td><td>Environment variables for current or target process</td></tr>
+    <tr><td><code>upload(file=...)</code></td><td><span class="pill p-t">Collection</span></td><td>Upload file from client to server data store</td></tr>
+    <tr><td><code>http_client(url=...)</code></td><td><span class="pill p-b">Network</span></td><td>HTTP requests from VQL (webhooks, enrichment, SOAR)</td></tr>
+    <tr><td><code>watch_monitoring(...)</code></td><td><span class="pill p-r">Events</span></td><td>Subscribe to CLIENT_EVENT artifact streams server-side</td></tr>
+  </table></div>
+</div>
+<div id="vt3" class="sp">
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Find PowerShell processes</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'ex1')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> Pid, Ppid, Name, CommandLine, CreateTime
+<span class="kw">FROM</span> <span class="fn">pslist</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"powershell"</span></div>
+      <div class="vql-result" id="ex1"><table class="vt">
+        <tr><th>Pid</th><th>Ppid</th><th>Name</th><th>CommandLine</th><th>CreateTime</th></tr>
+        <tr><td>5512</td><td>3120</td><td>powershell.exe</td><td>powershell -enc JAB...</td><td>2025-03-24 09:12</td></tr>
+        <tr><td>7840</td><td>880</td><td>powershell.exe</td><td>powershell.exe -ep bypass -c IEX</td><td>2025-03-24 11:45</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Hash small exes in System32</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'ex2')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> FullPath, Size, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256, Mtime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Windows/System32/*.exe"</span>)
+<span class="kw">WHERE</span> Size &lt; <span class="str">10000</span>
+<span class="kw">ORDER BY</span> Size</div>
+      <div class="vql-result" id="ex2"><table class="vt">
+        <tr><th>FullPath</th><th>Size</th><th>SHA256</th><th>Mtime</th></tr>
+        <tr><td>C:\Windows\System32\reg.exe</td><td>6144</td><td>a3c2a...</td><td>2023-10-11</td></tr>
+        <tr><td>C:\Windows\System32\suspect.exe</td><td>4096</td><td>00000...</td><td>2025-03-22</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div>
+        <span class="vql-name">Security log — logon events (4624)</span>
+      </div>
+      <button class="run-btn" onclick="runVQL(this,'ex3')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> System.TimeCreated, EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP, EventData.LogonType
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span> <span class="kw">LIMIT</span> <span class="str">5</span></div>
+      <div class="vql-result" id="ex3"><table class="vt">
+        <tr><th>TimeCreated</th><th>User</th><th>SourceIP</th><th>LogonType</th></tr>
+        <tr><td>2025-03-24 08:01</td><td>jsmith</td><td>10.0.0.14</td><td>3 (Network)</td></tr>
+        <tr><td>2025-03-24 09:23</td><td>badactor</td><td><strong style="color:#c04040">185.220.101.x</strong></td><td>10 (RemoteInteractive)</td></tr>
+      </table></div>
+    </div>
+  </div>
+</div>
+<div id="vt4" class="sp">
+  <div class="h3">LET — Named Sub-queries</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Define a reusable result set</span>
+<span class="kw">LET</span> suspicious = <span class="kw">SELECT</span> Pid, Name, CommandLine
+  <span class="kw">FROM</span> <span class="fn">pslist</span>() <span class="kw">WHERE</span> CommandLine <span class="kw">=~</span> <span class="str">"mimikatz|beacon|cobalt"</span>
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> suspicious <span class="kw">WHERE</span> Pid > <span class="str">1000</span></div>
+  <div class="h3">foreach — Iterate Over Rows</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- For each suspicious process, list its network connections</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid <span class="kw">FROM</span> suspicious },
+  query={ <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">netstat</span>() <span class="kw">WHERE</span> Pid = Pid }
+)</div>
+  <div class="h3">Accessors — Filesystem Abstraction Layer</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Accessor</th><th>Description</th></tr>
+    <tr><td><code>file</code></td><td>Default OS filesystem — subject to OS buffering and ACLs</td></tr>
+    <tr><td><code>ntfs</code></td><td>Low-level NTFS: bypasses OS cache, exposes ADS, $MFT, $LogFile</td></tr>
+    <tr><td><code>raw_reg</code></td><td>Direct registry hive parsing without registry API</td></tr>
+    <tr><td><code>zip</code></td><td>Browse inside ZIP, EVTX, or other container files</td></tr>
+    <tr><td><code>s3</code></td><td>AWS S3 bucket access for cloud artifact collection</td></tr>
+    <tr><td><code>smb</code></td><td>Remote SMB share access</td></tr>
+  </table></div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">glob</span>(
+  globs=<span class="str">"/**/*.exe"</span>,
+  accessor=<span class="str">"ntfs"</span>  <span class="cmt">-- bypass OS, see hidden and locked files</span>
+)</div>
+</div>`;}
+
+function paneArtifacts(){return`
+<div id="art-tabs" class="tab-bar">
+  <button class="tab active" data-target="at1">Structure</button>
+  <button class="tab" data-target="at2">Types</button>
+  <button class="tab" data-target="at3">Catalog</button>
+  <button class="tab" data-target="at4">Writing Tips</button>
+</div>
+<div id="at1" class="sp active">
+  <div class="banner"><strong>Artifacts</strong> are the primary unit of shareable, parameterized VQL in Velociraptor. They give complex queries a human-readable name, documentation, configurable parameters, and optional preconditions.</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="kw">name:</span> <span class="str">Custom.Windows.SuspiciousExes</span>
+<span class="kw">description:</span> <span class="str">Find small unsigned executables in System32.</span>
+<span class="kw">author:</span> <span class="str">SOC Team</span>
+<span class="kw">type:</span> <span class="str">CLIENT</span>
+<span class="kw">parameters:</span>
+  - <span class="kw">name:</span> <span class="str">MaxSize</span>
+    <span class="kw">default:</span> <span class="str">"10000"</span>
+    <span class="kw">description:</span> <span class="str">Max file size in bytes</span>
+    <span class="kw">type:</span> <span class="str">int</span>
+<span class="kw">precondition:</span> <span class="str">SELECT OS From info() where OS = 'windows'</span>
+<span class="kw">sources:</span>
+  - <span class="kw">name:</span> <span class="str">SuspiciousExes</span>
+    <span class="kw">query:</span> |
+      <span class="kw">SELECT</span> FullPath, Size, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256
+      <span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Windows/System32/*.exe"</span>)
+      <span class="kw">WHERE</span> Size &lt; MaxSize</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    <tr><td><code>name</code></td><td><span class="badge badge-ok">Yes</span></td><td>Unique dot-namespaced ID, e.g. Windows.Forensics.Prefetch</td></tr>
+    <tr><td><code>description</code></td><td><span class="badge badge-warn">Rec.</span></td><td>Human-readable explanation shown in GUI</td></tr>
+    <tr><td><code>author</code></td><td>No</td><td>Artifact author attribution</td></tr>
+    <tr><td><code>type</code></td><td><span class="badge badge-warn">Rec.</span></td><td>CLIENT, SERVER, CLIENT_EVENT, SERVER_EVENT, NOTEBOOK</td></tr>
+    <tr><td><code>parameters</code></td><td>No</td><td>Inputs with name, default, type (int/bool/string/yara/regex/csv)</td></tr>
+    <tr><td><code>sources</code></td><td><span class="badge badge-ok">Yes</span></td><td>Named query blocks — each produces a separate result table</td></tr>
+    <tr><td><code>precondition</code></td><td>No</td><td>VQL expression — artifact skips if this returns no rows</td></tr>
+    <tr><td><code>tools</code></td><td>No</td><td>External binaries Velociraptor fetches, caches, and distributes</td></tr>
+    <tr><td><code>resources</code></td><td>No</td><td>cpu_limit, max_rows, timeout, max_upload_bytes</td></tr>
+    <tr><td><code>export</code></td><td>No</td><td>VQL functions/constants exported for other artifacts to import</td></tr>
+  </table></div>
+</div>
+<div id="at2" class="sp">
+  <div class="g2">
+    <div class="card" style="border-left:3px solid var(--teal)">
+      <div class="card-title">CLIENT</div>
+      <div class="p">Runs on an endpoint when triggered by a collection or hunt. Results stream to the server. Most artifacts are this type.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">CLIENT</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--orange)">
+      <div class="card-title">CLIENT_EVENT</div>
+      <div class="p">Runs continuously on the endpoint, streaming events in real time. Persists until removed. Used for detection, monitoring, and alerting.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">CLIENT_EVENT</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid #4a8fff">
+      <div class="card-title">SERVER</div>
+      <div class="p">Runs on the Velociraptor server. Used for post-processing hunt results, enrichment, sending notifications, and server-side automation.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">SERVER</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid #c04040">
+      <div class="card-title">SERVER_EVENT</div>
+      <div class="p">Continuous server-side monitoring. Can watch CLIENT_EVENT streams and trigger automated responses — webhooks, SOAR, notifications.</div>
+      <div class="cb" style="font-size:11px"><span class="kw">type:</span> <span class="str">SERVER_EVENT</span></div>
+    </div>
+  </div>
+</div>
+<div id="at3" class="sp">
+  <div class="filter-bar" id="artFilterBar">
+    <button class="fbtn active" onclick="filterArts('all',this)">All</button>
+    <button class="fbtn" onclick="filterArts('windows',this)">Windows</button>
+    <button class="fbtn" onclick="filterArts('linux',this)">Linux</button>
+    <button class="fbtn" onclick="filterArts('detection',this)">Detection</button>
+    <button class="fbtn" onclick="filterArts('forensics',this)">Forensics</button>
+  </div>
+  <div class="art-grid" id="artGrid"></div>
+</div>
+<div id="at4" class="sp">
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Naming conventions</span><span class="acc-arr">›</span></div><div class="acc-b">Use dot-namespaced names: <code>OS.Category.Sub</code>. Built-ins follow this convention: <code>Windows.Forensics.Prefetch</code>, <code>Linux.Sys.Pslist</code>, <code>Generic.Detection.Yara</code>. Custom artifacts should start with your org name to avoid conflicts with future built-ins: <code>Acme.Detection.Beacon</code>, <code>Corp.IR.Triage</code>.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Parameter types</span><span class="acc-arr">›</span></div><div class="acc-b">Available parameter types: <code>string</code>, <code>int</code>, <code>bool</code>, <code>timestamp</code>, <code>choices</code>, <code>csv</code>, <code>json</code>, <code>yara</code>, <code>regex</code>, <code>upload</code>. Always provide sensible defaults so analysts can run without configuring everything. The <code>yara</code> and <code>regex</code> types give analysts a multiline editor in the GUI.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Resource limits</span><span class="acc-arr">›</span></div><div class="acc-b">Add a <code>resources</code> block to prevent runaway artifacts from degrading endpoint performance. Key fields: <code>cpu_limit: 50</code> (percent), <code>max_rows: 100000</code>, <code>timeout: 300</code> (seconds), <code>max_upload_bytes: 1000000000</code>. These are enforced by the client-side VQL engine.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Multiple sources</span><span class="acc-arr">›</span></div><div class="acc-b">Artifacts support multiple named <code>sources</code>, each producing a separate result table shown as tabs in the GUI. Use this to collect related but distinct data in one artifact — e.g. one source for processes, another for network connections, and a third for startup items.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Importing and exporting</span><span class="acc-arr">›</span></div><div class="acc-b">Use the <code>export</code> field to expose VQL functions and constants that other artifacts can <code>import</code>. This enables composability and prevents code duplication across your artifact library. Import with: <code>import: - path: Custom.Helpers.Shared</code> in the importing artifact.</div></div>
+  <div class="acc"><div class="acc-h" onclick="toggleAcc(this)"><span>Artifact Exchange</span><span class="acc-arr">›</span></div><div class="acc-b">The <a href="https://docs.velociraptor.app/exchange/" target="_blank" style="color:var(--teal)">Artifact Exchange</a> hosts hundreds of community-contributed artifacts. Import them directly in the GUI under <em>View Artifacts → Add Artifact → Import from Exchange</em>. Review the VQL before deploying in production.</div></div>
+</div>`;}
+
+function paneClients(){return`
+<div class="card">
+  <div class="card-title"><span class="ct ct-t">◉</span> Connected Clients (Sample)</div>
+  <div class="client-row"><div class="cdot on"></div><div class="c-name">WIN-DC01.corp.local</div><div class="c-meta">Windows Server 2022 · 10.0.0.1 · Online now</div><span class="badge badge-ok">Online</span></div>
+  <div class="client-row"><div class="cdot on"></div><div class="c-name">WIN-WS042.corp.local</div><div class="c-meta">Windows 11 22H2 · 10.0.0.42 · Online now</div><span class="badge badge-ok">Online</span></div>
+  <div class="client-row"><div class="cdot on"></div><div class="c-name">LINUX-WEB01</div><div class="c-meta">Ubuntu 22.04 LTS · 10.0.1.10 · Online now</div><span class="badge badge-ok">Online</span></div>
+  <div class="client-row"><div class="cdot away"></div><div class="c-name">WIN-LAPTOP99.corp.local</div><div class="c-meta">Windows 10 21H2 · 192.168.1.99 · 2 hours ago</div><span class="badge badge-warn">Away</span></div>
+  <div class="client-row"><div class="cdot off"></div><div class="c-name">WIN-SERVER03</div><div class="c-meta">Windows Server 2019 · 10.0.0.3 · 2 days ago</div><span class="badge badge-info">Offline</span></div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">⚒</span> Per-Client Actions</div>
+    <ul class="vl">
+      <li>Collect Artifacts — trigger one-shot collections</li>
+      <li>Live Shell — real-time OS command execution</li>
+      <li>VFS Browser — remote filesystem navigation</li>
+      <li>Client Events — manage monitoring artifacts</li>
+      <li>Quarantine — isolate endpoint from network</li>
+      <li>Kill / Suspend process by PID</li>
+      <li>Apply or remove labels for grouping</li>
+      <li>Set key-value metadata on clients</li>
+      <li>View interrogation info (OS, hostname, IPs)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">⚙</span> Deployment Methods</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Method</th><th>Platform</th></tr>
+      <tr><td>GPO + MSI package</td><td>Windows Enterprise</td></tr>
+      <tr><td>SCCM / Intune</td><td>Windows MDM</td></tr>
+      <tr><td>Ansible / Chef / Puppet</td><td>Linux / Cross-platform</td></tr>
+      <tr><td>velociraptor service install</td><td>Any (manual)</td></tr>
+      <tr><td>Cloud init / userdata</td><td>AWS / GCP / Azure VMs</td></tr>
+      <tr><td>Docker / Kubernetes</td><td>Container environments</td></tr>
+    </table></div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-t">◈</span> Searching for Clients</div>
+  <div class="p">The client search bar supports multiple search types to quickly find endpoints:</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Query</th><th>Effect</th></tr>
+    <tr><td><code>hostname:WIN-DC01</code></td><td>Match by hostname substring</td></tr>
+    <tr><td><code>label:Servers</code></td><td>All clients with the "Servers" label</td></tr>
+    <tr><td><code>os:windows</code></td><td>All Windows clients</td></tr>
+    <tr><td><code>ip:10.0.0.</code></td><td>Clients with IPs matching prefix</td></tr>
+    <tr><td><code>C.1234abcd</code></td><td>Exact client ID lookup</td></tr>
+  </table></div>
+</div>`;}
+
+function paneHunting(){return`
+<div class="banner"><strong>Hunts</strong> push artifact collections to all matching endpoints simultaneously. A hunt can reach thousands of clients in seconds and aggregate results centrally — no manual per-client work required.</div>
+<div class="h2">Hunt Workflow</div>
+<div class="flow">
+  <div class="step"><span class="step-n">1</span><span class="step-l">Select Artifact</span></div>
+  <div class="step"><span class="step-n">2</span><span class="step-l">Configure Params</span></div>
+  <div class="step"><span class="step-n">3</span><span class="step-l">Target Clients</span></div>
+  <div class="step"><span class="step-n">4</span><span class="step-l">Launch Hunt</span></div>
+  <div class="step"><span class="step-n">5</span><span class="step-l">Monitor Progress</span></div>
+  <div class="step"><span class="step-n">6</span><span class="step-l">Triage Results</span></div>
+</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">⬡</span> Hunt Targeting Options</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Target</th><th>Description</th></tr>
+      <tr><td>All Clients</td><td>Every currently enrolled endpoint</td></tr>
+      <tr><td>By Label</td><td>Tagged groups: "Servers", "Finance", "Tier1"</td></tr>
+      <tr><td>By OS</td><td>Windows / Linux / macOS separately</td></tr>
+      <tr><td>By Condition</td><td>VQL expression evaluated against client info</td></tr>
+      <tr><td>By Client ID list</td><td>Explicit list of client IDs</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">★</span> Result Export Options</div>
+    <ul class="vl">
+      <li>Per-client results in the GUI Clients tab</li>
+      <li>Download full results as CSV</li>
+      <li>Download full results as JSONL</li>
+      <li>Post-process with a SERVER artifact in a Notebook</li>
+      <li>Stream to Splunk / Elastic / SIEM via API</li>
+      <li>Trigger automated follow-up via SERVER_EVENT</li>
+    </ul>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-r">◎</span> IOC-to-Hunt in Under 5 Minutes</div>
+  <div class="flow" style="margin-bottom:0">
+    <div class="step"><span class="step-n" style="font-size:10px">Advisory</span><span class="step-l">Receive IOC</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Artifact</span><span class="step-l">Write or find</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Test</span><span class="step-l">Single client</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Hunt</span><span class="step-l">Full fleet</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Triage</span><span class="step-l">Positive hits</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">IR</span><span class="step-l">Respond</span></div>
+  </div>
+</div>
+<div class="h3">YARA Hunt — Cobalt Strike Beacon</div>
+<div class="cb"><button class="copy-btn">Copy</button><span class="kw">LET</span> YaraRule = <span class="str">'''
+rule CobaltStrikeBeacon {
+  strings:
+    $x1 = { FC 48 83 E4 F0 }
+    $x2 = "ReflectiveLoader" ascii
+  condition: any of them
+}
+'''</span>
+
+<span class="kw">SELECT</span> FullPath, hash(path=FullPath).SHA256 <span class="kw">AS</span> SHA256, Rule
+<span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, files=<span class="str">"C:/Windows/**/*.dll"</span>)</div>`;}
+
+function paneForensics(){return`
+<div id="for-tabs" class="tab-bar">
+  <button class="tab active" data-target="ft1">Filesystem</button>
+  <button class="tab" data-target="ft2">Execution Evidence</button>
+  <button class="tab" data-target="ft3">Event Log IDs</button>
+  <button class="tab" data-target="ft4">Memory</button>
+  <button class="tab" data-target="ft5">Dead Disk</button>
+</div>
+<div id="ft1" class="sp active">
+  <div class="h3">Filesystem & NTFS Forensics</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Technique</th><th>VQL / Artifact</th></tr>
+    <tr><td>Full filesystem glob</td><td><code>glob(globs="/**/*.exe", accessor="ntfs")</code></td></tr>
+    <tr><td>MFT timeline (incl. deleted)</td><td><code>parse_mft()</code></td></tr>
+    <tr><td>USN Change Journal</td><td><code>parse_usn(device="\\\.\\C:")</code></td></tr>
+    <tr><td>Alternate Data Streams</td><td>ntfs accessor — appends <code>:stream_name</code></td></tr>
+    <tr><td>File hash verification</td><td><code>hash(path=X).SHA256</code></td></tr>
+    <tr><td>Recycle Bin artifacts</td><td>Windows.Forensics.RecycleBin</td></tr>
+    <tr><td>LNK / Recent files</td><td>Windows.Forensics.LnkFiles</td></tr>
+    <tr><td>Zone.Identifier (download history)</td><td>ntfs accessor on :Zone.Identifier stream</td></tr>
+  </table></div>
+</div>
+<div id="ft2" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Artifact</th><th>Evidence Type</th><th>Location</th></tr>
+    <tr><td>Windows.Forensics.Prefetch</td><td>Prefetch execution records</td><td>C:\Windows\Prefetch\</td></tr>
+    <tr><td>Windows.Forensics.Amcache</td><td>Recently executed software + SHA1</td><td>Amcache.hve registry hive</td></tr>
+    <tr><td>Windows.Forensics.ShimCache</td><td>AppCompatCache execution list</td><td>SYSTEM hive, ControlSet</td></tr>
+    <tr><td>Windows.Forensics.SRUM</td><td>Historical process and network activity</td><td>C:\Windows\System32\sru\</td></tr>
+    <tr><td>Windows.Forensics.Bam</td><td>Background Activity Monitor (last run time)</td><td>SYSTEM hive, Services\bam</td></tr>
+    <tr><td>Windows.System.Pslist</td><td>Currently running processes</td><td>Live kernel data</td></tr>
+    <tr><td>Windows.EventLogs.EvtxHunter</td><td>Event ID 4688 process creation</td><td>Security.evtx</td></tr>
+    <tr><td>Windows.Forensics.UserHive</td><td>NTUSER.DAT recent docs and MRUs</td><td>Per-user NTUSER.DAT</td></tr>
+  </table></div>
+</div>
+<div id="ft3" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Event ID</th><th>Channel</th><th>Meaning</th></tr>
+    <tr><td><strong>4624</strong></td><td>Security</td><td>Successful logon — note LogonType for lateral movement</td></tr>
+    <tr><td><strong>4625</strong></td><td>Security</td><td>Failed logon — brute force indicator</td></tr>
+    <tr><td><strong>4648</strong></td><td>Security</td><td>Explicit credential logon (RunAs, PTH)</td></tr>
+    <tr><td><strong>4688</strong></td><td>Security</td><td>Process creation (enable cmdline auditing for full value)</td></tr>
+    <tr><td><strong>4698</strong></td><td>Security</td><td>Scheduled task created — common persistence mechanism</td></tr>
+    <tr><td><strong>4699</strong></td><td>Security</td><td>Scheduled task deleted — possible evidence of cleanup</td></tr>
+    <tr><td><strong>4720</strong></td><td>Security</td><td>User account created</td></tr>
+    <tr><td><strong>4732</strong></td><td>Security</td><td>Member added to security-enabled local group</td></tr>
+    <tr><td><strong>7045</strong></td><td>System</td><td>New service installed — persistence/lateral movement</td></tr>
+    <tr><td><strong>4103/4104</strong></td><td>PowerShell</td><td>Script block logging — captures deobfuscated PS code</td></tr>
+    <tr><td><strong>1102</strong></td><td>Security</td><td>Audit log cleared — possible evidence destruction</td></tr>
+    <tr><td><strong>4776</strong></td><td>Security</td><td>NTLM authentication — source of credential relay</td></tr>
+    <tr><td><strong>5140</strong></td><td>Security</td><td>Network share accessed — lateral movement evidence</td></tr>
+    <tr><td><strong>5001/5004</strong></td><td>Windows Defender</td><td>Defender disabled — defense evasion</td></tr>
+  </table></div>
+</div>
+<div id="ft4" class="sp">
+  <ul class="vl" style="margin-bottom:12px">
+    <li>Enumerate process handles, loaded modules, and memory regions via VQL plugins</li>
+    <li>Scan process memory with <code>yara(pid=PID)</code> for beacon and shellcode signatures</li>
+    <li>Detect process hollowing and injection via VAD (Virtual Address Descriptor) flags</li>
+    <li>ETW (Event Tracing for Windows) for kernel-level process, file, and network events</li>
+    <li>Monitor DNS queries, registry writes, file opens in real time via ETW artifacts</li>
+    <li>Use <code>Windows.Memory.ProcessInfo</code> for full module enumeration per process</li>
+  </ul>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Scan all running processes for Cobalt Strike patterns</span>
+<span class="kw">LET</span> YaraRule = <span class="str">'''rule CSBeacon { strings: $x = { FC 48 83 E4 F0 } condition: $x }'''</span>
+
+<span class="kw">SELECT</span> Pid, Name, Rule <span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>() },
+  query={ <span class="kw">SELECT</span> Pid, Name, Rule <span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, pid=Pid) }
+)</div>
+</div>
+<div id="ft5" class="sp">
+  <div class="banner"><strong>Dead-disk analysis</strong> runs any CLIENT artifact against a raw disk image (E01, DD, VMDK) using filesystem remapping — no separate tooling needed.</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt"># Attach Velociraptor to a disk image</span>
+<span class="fn">velociraptor</span> --config client.config.yaml deaddisk \
+  --image /evidence/suspect_drive.E01
+
+<span class="cmt"># Or build a remapping config and collect artifacts against it</span>
+<span class="fn">velociraptor</span> --config deaddisk.yaml artifacts collect \
+  Windows.Forensics.Prefetch \
+  Windows.Forensics.Amcache \
+  Windows.EventLogs.EvtxHunter</div>
+  <div class="p">Once remapped, all CLIENT artifacts transparently redirect their filesystem calls to the image. This gives you MFT, event logs, Prefetch, registry, and everything else from the offline image — using the exact same workflow as live endpoint analysis.</div>
+</div>`;}
+
+function paneMonitoring(){return`
+<div class="banner"><strong>CLIENT_EVENT artifacts</strong> run continuously on enrolled endpoints and stream events to the server as they occur. They persist until explicitly removed or updated.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◉</span> Core Monitoring Artifacts</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>Artifact</th><th>Detects</th></tr>
+      <tr><td>Windows.Events.ProcessCreation</td><td>Every new process + full command line</td></tr>
+      <tr><td>Windows.Events.ServiceCreation</td><td>New Windows services (persistence)</td></tr>
+      <tr><td>Windows.Events.DNSQueries</td><td>DNS lookups via ETW (no network tap needed)</td></tr>
+      <tr><td>Windows.Events.NetworkSummary</td><td>New outbound connections</td></tr>
+      <tr><td>Windows.Events.ScheduledTasks</td><td>Task creation, modification, deletion</td></tr>
+      <tr><td>Windows.Sigma.Base</td><td>Sigma rule matches on streaming event logs</td></tr>
+      <tr><td>Linux.Events.Execve</td><td>Process execution via eBPF or audit daemon</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">▲</span> Server-Side Alerting (SERVER_EVENT)</div>
+    <div class="p">Watch incoming client event streams and trigger automated actions:</div>
+    <div class="cb" style="font-size:11px"><button class="copy-btn">Copy</button><span class="kw">LET</span> hits = <span class="kw">SELECT</span> * <span class="kw">FROM</span>
+  <span class="fn">watch_monitoring</span>(
+    artifact=<span class="str">'Windows.Events.ProcessCreation'</span>)
+  <span class="kw">WHERE</span> CommandLine <span class="kw">=~</span> <span class="str">"mimikatz|lsass|sekurlsa"</span>
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">foreach</span>(row=hits,
+  query={ <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">http_client</span>(
+    url=SlackWebhookURL,
+    data=dict(text=format(
+      format=<span class="str">"ALERT: %v on %v"</span>,
+      args=[CommandLine, ClientId]))
+  )}
+)</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title"><span class="ct ct-b">⚙</span> Enabling Monitoring on a Client</div>
+  <div class="flow" style="margin-bottom:0">
+    <div class="step"><span class="step-n" style="font-size:10px">GUI</span><span class="step-l">Open client</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Tab</span><span class="step-l">Client Events</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">+</span><span class="step-l">Add artifact</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Params</span><span class="step-l">Configure</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Save</span><span class="step-l">Apply to client</span></div>
+    <div class="step"><span class="step-n" style="font-size:10px">Live</span><span class="step-l">Events stream</span></div>
+  </div>
+</div>`;}
+
+function paneOffline(){return`
+<div class="banner"><strong>Offline collectors</strong> are pre-built Velociraptor binaries that collect artifacts locally to a ZIP file — no server connection required at collection time.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◆</span> Use Cases</div>
+    <ul class="vl">
+      <li>Air-gapped or network-isolated environments</li>
+      <li>Partner or vendor-managed devices</li>
+      <li>Volatile cloud instances (pre-termination triage)</li>
+      <li>Devices under legal hold — no persistent agent</li>
+      <li>Rapid first-responder deployment — run and hand off</li>
+      <li>Evidence collection without network exposure</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">▲</span> Output Options</div>
+    <ul class="vl">
+      <li>Local ZIP file (default)</li>
+      <li>Password-encrypted ZIP</li>
+      <li>GPG-encrypted output for chain-of-custody</li>
+      <li>Auto-upload to AWS S3 on completion</li>
+      <li>Auto-upload to Google Cloud Storage</li>
+      <li>SFTP upload to IR infrastructure</li>
+    </ul>
+  </div>
+</div>
+<div class="h2">Building an Offline Collector (GUI)</div>
+<div class="flow">
+  <div class="step"><span class="step-n">1</span><span class="step-l">Server Artifacts</span></div>
+  <div class="step"><span class="step-n">2</span><span class="step-l">Server.Utils.CreateCollector</span></div>
+  <div class="step"><span class="step-n">3</span><span class="step-l">Select artifacts</span></div>
+  <div class="step"><span class="step-n">4</span><span class="step-l">Set output / encryption</span></div>
+  <div class="step"><span class="step-n">5</span><span class="step-l">Launch → Download binary</span></div>
+  <div class="step"><span class="step-n">6</span><span class="step-l">Run on target</span></div>
+</div>
+<div class="h2">Importing Results Back to Server</div>
+<div class="cb"><button class="copy-btn">Copy</button><span class="cmt"># Import a collected ZIP — client_id is optional, creates synthetic client</span>
+<span class="fn">velociraptor</span> --config server.config.yaml \
+  import --client_id C.abc123 offline_collection.zip
+
+<span class="cmt"># Or drag-and-drop in GUI: Server Artifacts → Import Hunt → Upload ZIP</span></div>
+<div class="p">After import the collection appears exactly like a live client result — all GUI analysis, Notebooks, and post-processing apply with no workflow changes.</div>`;}
+
+function paneNotebooks(){return`
+<div class="banner"><strong>Notebooks</strong> are built-in interactive investigation environments combining VQL query cells with Markdown documentation cells. They create living, shareable investigation records.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-t">◉</span> Features</div>
+    <ul class="vl">
+      <li>Mix VQL cells and Markdown cells freely</li>
+      <li>Results render as interactive sortable tables</li>
+      <li>Timeline visualization for event data</li>
+      <li>Charts and graphs from VQL aggregation results</li>
+      <li>Attach to hunts, collections, or server-global scope</li>
+      <li>Share read-only or edit-enabled with teammates</li>
+      <li>Export as HTML for report delivery</li>
+      <li>Iterative refinement — no page reload needed</li>
+      <li>Stacked cell execution with prior results in scope</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">▤</span> Investigation Cell Flow</div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-md-hdr">Markdown</div><div class="nb-cell-body" style="color:var(--muted);font-size:11px"><em>## Investigation Scope</em><br>Investigating lateral movement from WIN-WS042 beginning 2025-03-24 08:00 UTC...</div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT * FROM hunt_results(hunt_id='H.abc') WHERE ClientId = 'C.xyz'</code></div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT TimeCreated, User, SourceIP FROM parse_evtx(...) WHERE EventID = 4624</code></div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-md-hdr">Markdown</div><div class="nb-cell-body" style="color:var(--muted);font-size:11px"><em>## Findings</em><br>Attacker logged in from 185.220.101.x at 09:23 UTC using stolen credentials...</div></div>
+    <div class="nb-cell"><div class="nb-cell-hdr nb-vql-hdr">VQL</div><div class="nb-cell-body"><code style="font-size:11px">SELECT Pid, Name FROM pslist() WHERE CreateTime > '2025-03-24T09:23:00Z'</code></div></div>
+  </div>
+</div>`;}
+
+function paneAPI(){return`
+<div class="banner"><strong>Velociraptor exposes a gRPC API</strong> enabling full automation: trigger collections, stream results, manage clients, and integrate with SIEM/SOAR platforms programmatically.</div>
+<div class="g2">
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">⇄</span> API Use Cases</div>
+    <ul class="vl">
+      <li>Auto-enrich SIEM alerts by triggering targeted collections</li>
+      <li>Feed hunt results into Splunk / Elastic in real time</li>
+      <li>Automate quarantine on confirmed-compromised hosts</li>
+      <li>Schedule periodic baseline collections</li>
+      <li>Build custom investigation portals on the API</li>
+      <li>CI/CD pipeline security scanning</li>
+      <li>SOAR playbook integration (Splunk SOAR, Cortex XSOAR)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-o">★</span> pyvelociraptor Quick Start</div>
+    <div class="cb" style="font-size:11px"><button class="copy-btn">Copy</button><span class="cmt"># Install the Python client library</span>
+pip install pyvelociraptor
+
+<span class="cmt"># Use an API config generated from the server</span>
+<span class="fn">velociraptor</span> --config server.config.yaml \
+  config api_client --name myapp api.config.yaml</div>
+  </div>
+</div>
+<div class="h3">Trigger a Collection via API (Python)</div>
+<div class="cb"><button class="copy-btn">Copy</button><span class="cmt">import</span> pyvelociraptor
+<span class="cmt">import</span> api_pb2, api_pb2_grpc
+
+config = pyvelociraptor.LoadConfigFile(<span class="str">"api.config.yaml"</span>)
+creds = pyvelociraptor.GrpcCreds(config)
+stub = api_pb2_grpc.APIStub(creds)
+
+<span class="cmt"># Schedule an artifact collection on a specific client</span>
+response = stub.CollectArtifact(api_pb2.CollectArtifactRequest(
+  client_id=<span class="str">"C.abc123"</span>,
+  artifacts=[api_pb2.Artifact(name=<span class="str">"Windows.System.Pslist"</span>)],
+), timeout=<span class="str">60</span>)
+
+print(f<span class="str">"Flow ID: {response.flow_id}"</span>)</div>
+<div class="h3">ACL Roles Reference</div>
+<div class="tbl-wrap"><table class="vt">
+  <tr><th>Role</th><th>Permissions Summary</th></tr>
+  <tr><td><span class="badge badge-ok">administrator</span></td><td>Full access: manage users, config, all operations</td></tr>
+  <tr><td><span class="badge badge-info">investigator</span></td><td>Collect artifacts, run hunts, use VFS, view all results</td></tr>
+  <tr><td><span class="badge badge-warn">analyst</span></td><td>Read collections and results, run notebooks — no new collections</td></tr>
+  <tr><td><span class="badge badge-orange">api</span></td><td>API access only — no GUI login possible</td></tr>
+  <tr><td><span class="badge badge-info">reader</span></td><td>Read-only access to all collections and results</td></tr>
+</table></div>`;}
+
+function paneReference(){return`
+<div id="ref-tabs" class="tab-bar">
+  <button class="tab active" data-target="rt1">CLI Commands</button>
+  <button class="tab" data-target="rt2">Top Artifacts</button>
+  <button class="tab" data-target="rt3">Resources</button>
+</div>
+<div id="rt1" class="sp active">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td><code>velociraptor gui</code></td><td>Instant all-in-one GUI on localhost (testing)</td></tr>
+    <tr><td><code>velociraptor config generate -i</code></td><td>Interactive wizard to generate server config</td></tr>
+    <tr><td><code>velociraptor frontend -v</code></td><td>Start the production frontend server (verbose)</td></tr>
+    <tr><td><code>velociraptor query "&lt;VQL&gt;"</code></td><td>Run a VQL query against the local system</td></tr>
+    <tr><td><code>velociraptor artifacts list</code></td><td>List all available artifact names</td></tr>
+    <tr><td><code>velociraptor artifacts collect &lt;name&gt;</code></td><td>Collect a specific artifact from localhost</td></tr>
+    <tr><td><code>velociraptor user add &lt;user&gt; --role &lt;r&gt;</code></td><td>Create a GUI user with a specified role</td></tr>
+    <tr><td><code>velociraptor service install</code></td><td>Install Velociraptor as a system service</td></tr>
+    <tr><td><code>velociraptor service remove</code></td><td>Uninstall the system service</td></tr>
+    <tr><td><code>velociraptor import --client_id C zip</code></td><td>Import an offline collection ZIP to the server</td></tr>
+    <tr><td><code>velociraptor deaddisk --image file.E01</code></td><td>Analyze a raw disk image with VQL artifacts</td></tr>
+    <tr><td><code>velociraptor config show</code></td><td>Print the current configuration (redacted)</td></tr>
+    <tr><td><code>velociraptor config api_client --name app out.yaml</code></td><td>Generate an API client config for a named app</td></tr>
+    <tr><td><code>velociraptor acl grant &lt;user&gt; --role &lt;r&gt;</code></td><td>Grant an ACL role to a user</td></tr>
+    <tr><td><code>velociraptor fs ls /</code></td><td>Browse the VFS of the local system via CLI</td></tr>
+  </table></div>
+</div>
+<div id="rt2" class="sp">
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Artifact Name</th><th>Purpose</th></tr>
+    <tr><td>Windows.System.Pslist</td><td>Running processes with full metadata</td></tr>
+    <tr><td>Windows.Network.Netstat</td><td>Network connections and listening ports</td></tr>
+    <tr><td>Windows.Sys.StartupItems</td><td>Registry-based startup persistence</td></tr>
+    <tr><td>Windows.System.Services</td><td>Installed Windows services</td></tr>
+    <tr><td>Windows.System.ScheduledTasks</td><td>Scheduled task details</td></tr>
+    <tr><td>Windows.Forensics.Prefetch</td><td>Application execution history</td></tr>
+    <tr><td>Windows.Forensics.Amcache</td><td>Recently executed software and SHA1 hashes</td></tr>
+    <tr><td>Windows.Forensics.ShimCache</td><td>AppCompatCache execution evidence</td></tr>
+    <tr><td>Windows.Forensics.SRUM</td><td>Historical process and network usage</td></tr>
+    <tr><td>Windows.EventLogs.EvtxHunter</td><td>Flexible search across all event log channels</td></tr>
+    <tr><td>Generic.Forensics.SQLiteHunter</td><td>Browser history, cookies, and SQLite databases</td></tr>
+    <tr><td>Generic.Detection.Yara</td><td>YARA scan with custom rules</td></tr>
+    <tr><td>Windows.Sigma.Base</td><td>Sigma rule-based detection on event logs</td></tr>
+    <tr><td>Linux.Sys.Pslist</td><td>Running processes on Linux</td></tr>
+    <tr><td>Linux.Sys.LastLogon</td><td>Recent login history on Linux</td></tr>
+    <tr><td>Server.Utils.CreateCollector</td><td>Build a standalone offline collector binary</td></tr>
+  </table></div>
+</div>
+<div id="rt3" class="sp">
+  <div class="g2">
+    <div class="card" style="border-left:3px solid var(--teal)">
+      <div class="card-title">Official Documentation</div>
+      <ul class="vl">
+        <li><a href="https://docs.velociraptor.app" target="_blank" style="color:var(--teal)">docs.velociraptor.app</a> — full documentation</li>
+        <li><a href="https://training.velociraptor.app" target="_blank" style="color:var(--teal)">training.velociraptor.app</a> — training slides</li>
+        <li><a href="https://docs.velociraptor.app/exchange/" target="_blank" style="color:var(--teal)">Artifact Exchange</a> — community artifacts</li>
+        <li><a href="https://docs.velociraptor.app/vql_reference/" target="_blank" style="color:var(--teal)">VQL Reference</a> — all plugins and functions</li>
+        <li><a href="https://github.com/Velocidex/velociraptor" target="_blank" style="color:var(--teal)">GitHub</a> — source code and releases</li>
+      </ul>
+    </div>
+    <div class="card" style="border-left:3px solid var(--orange)">
+      <div class="card-title">SANS DFIR Resources</div>
+      <ul class="vl">
+        <li><a href="https://digital-forensics.sans.org" target="_blank" style="color:var(--orange)">digital-forensics.sans.org</a> — SANS DFIR home</li>
+        <li>FOR508 — Advanced DFIR, IR, Threat Hunting</li>
+        <li>FOR500 — Windows Forensic Analysis</li>
+        <li>FOR528 — Ransomware for Incident Responders</li>
+        <li>FOR572 — Advanced Network Forensics</li>
+        <li>FOR610 — Reverse Engineering Malware</li>
+        <li><a href="https://www.sans.org/tools/sift-workstation/" target="_blank" style="color:var(--orange)">SIFT Workstation</a> — free forensic analysis VM</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ct ct-b">i</span> Official Velociraptor Training Course (7 Sessions)</div>
+    <div class="tbl-wrap"><table class="vt">
+      <tr><th>#</th><th>Session Topic</th></tr>
+      <tr><td>1</td><td>Introduction — architecture, deployment modes, quick start</td></tr>
+      <tr><td>2</td><td>VQL Fundamentals — syntax, plugins, functions, scope</td></tr>
+      <tr><td>3</td><td>Artifacts — writing, parameterizing, types, and management</td></tr>
+      <tr><td>4</td><td>Hunting — fleet-wide hunts, targeting, result analysis</td></tr>
+      <tr><td>5</td><td>Forensic Analysis — filesystem, NTFS, event logs, execution evidence</td></tr>
+      <tr><td>6</td><td>Monitoring and Detection — CLIENT_EVENT, YARA, Sigma, ETW</td></tr>
+      <tr><td>7</td><td>Advanced — API automation, dead-disk analysis, notebooks, offline collectors</td></tr>
+    </table></div>
+  </div>
+</div>`;}
+
+/* ── Render functions ── */
+/* ══ PLAYBOOK: RANSOMWARE ════════════════════════════════════ */
+function panePlaybookRansomware(){return`
+<div class="banner-red"><strong>Scenario:</strong> It's 02:14. The NOC calls — users on the finance floor are getting ransom notes. File shares are down. You have 15 minutes to make your first critical decisions. This playbook walks you through every step, with the exact Velociraptor commands to run at each stage.</div>
+
+<div id="rw-tabs" class="tab-bar">
+  <button class="tab active" data-target="rw1">Phase 1 — Scope & Isolate</button>
+  <button class="tab" data-target="rw2">Phase 2 — Initial Access</button>
+  <button class="tab" data-target="rw3">Phase 3 — Hunt the Encryptor</button>
+  <button class="tab" data-target="rw4">Phase 4 — Lateral Movement</button>
+  <button class="tab" data-target="rw5">Phase 5 — Exfiltration</button>
+  <button class="tab" data-target="rw6">Artifact Checklist</button>
+</div>
+
+<!-- PHASE 1 -->
+<div id="rw1" class="sp active">
+  <div class="h2">Phase 1 — Scope the Incident & Isolate Actively Encrypting Hosts</div>
+  <div class="banner"><strong>Your immediate priority:</strong> Stop the spread. But don't blindly shut down — hosts that are still running contain volatile evidence (RAM, active connections, running processes) that will be lost on power-off. Isolate via Velociraptor first, collect live evidence, then decide on shutdown.</div>
+
+  <div class="h3">Step 1 — Find All Hosts with Ransom Notes</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">Hunt — Find ransom note files across the fleet</span></div>
+      <button class="run-btn" onclick="runVQL(this,'rw1a')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Launch as a HUNT across all Windows clients</span>
+<span class="kw">SELECT</span> FullPath, Size, Mtime, Ctime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=[
+  <span class="str">"C:/**/*DECRYPT*"</span>,
+  <span class="str">"C:/**/*README*"</span>,
+  <span class="str">"C:/**/*RANSOM*"</span>,
+  <span class="str">"C:/**/*HOW_TO_RESTORE*"</span>,
+  <span class="str">"C:/**/*RESTORE_FILES*"</span>
+], accessor=<span class="str">"ntfs"</span>)
+<span class="kw">WHERE</span> Mtime > <span class="str">"2025-03-24T00:00:00Z"</span>  <span class="cmt">-- today only</span>
+<span class="kw">LIMIT</span> 500</div>
+      <div class="vql-result" id="rw1a"><table class="vt">
+        <tr><th>FullPath</th><th>Size</th><th>Mtime</th></tr>
+        <tr><td style="color:#c04040">C:\Users\jsmith\Desktop\DECRYPT_MY_FILES.txt</td><td>2,048</td><td style="color:#c04040">2025-03-24 02:11</td></tr>
+        <tr><td style="color:#c04040">C:\Finance\Q1_Reports\DECRYPT_MY_FILES.txt</td><td>2,048</td><td style="color:#c04040">2025-03-24 02:11</td></tr>
+        <tr><td style="color:#c04040">\\FILESERVER01\Shares\HR\DECRYPT_MY_FILES.txt</td><td>2,048</td><td style="color:#c04040">2025-03-24 02:12</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 2 — Identify Actively Encrypting Processes (Live Hosts)</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">On each hit host — find high-I/O processes writing encrypted files</span></div>
+      <button class="run-btn" onclick="runVQL(this,'rw1b')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Run on affected hosts: find processes with high write I/O</span>
+<span class="kw">SELECT</span> Pid, Name, Exe, CommandLine, Username,
+       IoCounters.WriteTransferCount <span class="kw">AS</span> BytesWritten,
+       IoCounters.WriteOperationCount <span class="kw">AS</span> WriteOps
+<span class="kw">FROM</span> <span class="fn">pslist</span>()
+<span class="kw">WHERE</span> IoCounters.WriteTransferCount > <span class="str">10000000</span>  <span class="cmt">-- &gt;10MB written</span>
+  <span class="kw">AND</span> Name !~ <span class="str">"System|MsMpEng|SearchIndexer|svchost"</span>
+<span class="kw">ORDER BY</span> IoCounters.WriteTransferCount <span class="kw">DESC</span></div>
+      <div class="vql-result" id="rw1b"><table class="vt">
+        <tr><th>Pid</th><th>Name</th><th>Exe</th><th>BytesWritten</th><th>WriteOps</th></tr>
+        <tr><td style="color:#c04040"><strong>7821</strong></td><td style="color:#c04040"><strong>svchost32.exe</strong></td><td style="color:#c04040">C:\Users\jsmith\AppData\Local\Temp\svchost32.exe</td><td style="color:#c04040">847,329,280</td><td style="color:#c04040">124,847</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 3 — Isolate the Host Without Cutting the Velociraptor Channel</div>
+  <div class="banner-teal"><strong>Velociraptor quarantine</strong> blocks all network traffic except the Velociraptor server connection — you maintain full investigative access while stopping lateral spread. This is critical: never just pull the network cable before collecting evidence.</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- GUI: Clients → [Client] → Actions → Quarantine Host</span>
+<span class="cmt">-- OR via VQL on the server (SERVER artifact):</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">Artifact.Windows.Remediation.Quarantine</span>(
+  ClientId=<span class="str">"C.abc123"</span>,
+  AddDNSServer=<span class="str">"false"</span>
+)</div>
+
+  <div class="h3">Step 4 — Snapshot Live Volatile Evidence Before Any Restart</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Collect all critical live artifacts in one shot on affected hosts</span>
+<span class="cmt">-- Run this as a COLLECTION on each identified host immediately</span>
+<span class="fn">Artifacts to collect in order:</span>
+1. Windows.System.Pslist          <span class="cmt">-- running processes + parent chain</span>
+2. Windows.Network.Netstat        <span class="cmt">-- current connections (C2?)</span>
+3. Windows.Sys.StartupItems       <span class="cmt">-- persistence check</span>
+4. Windows.System.ScheduledTasks  <span class="cmt">-- scheduled task persistence</span>
+5. Windows.System.Services        <span class="cmt">-- service-based persistence</span>
+6. Windows.KapeFiles.Targets      <span class="cmt">-- collect key forensic files</span></div>
+</div>
+
+<!-- PHASE 2 -->
+<div id="rw2" class="sp">
+  <div class="h2">Phase 2 — Find the Initial Access Vector</div>
+  <div class="banner"><strong>This is the hardest question to answer</strong> — and the most important. Without knowing how they got in, you cannot prevent re-entry. Work backward from the earliest execution evidence to find patient zero.</div>
+
+  <div class="h3">Step 1 — Find the Oldest Malicious Execution (Patient Zero)</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">Earliest executions from suspicious paths (Prefetch)</span></div>
+      <button class="run-btn" onclick="runVQL(this,'rw2a')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> Name, LastRunTime, RunCount, PrefetchHash
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Prefetch</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"temp|appdata|public|perflogs|recycle|downloads"</span>
+<span class="kw">ORDER BY</span> LastRunTime <span class="kw">ASC</span>
+<span class="kw">LIMIT</span> 50</div>
+      <div class="vql-result" id="rw2a"><table class="vt">
+        <tr><th>Name</th><th>LastRunTime</th><th>RunCount</th></tr>
+        <tr><td style="color:#c04040">SVCHOST32.EXE-A4B23C.pf</td><td style="color:#c04040">2025-03-21 22:14:07</td><td>8</td></tr>
+        <tr><td style="color:var(--warn)">PSEXEC.EXE-F8231A.pf</td><td style="color:var(--warn)">2025-03-21 22:44:33</td><td>3</td></tr>
+        <tr><td style="color:var(--warn)">ADFIND.EXE-2D3AF1.pf</td><td style="color:var(--warn)">2025-03-22 01:12:19</td><td>5</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 2 — Check RDP Logons Before the Incident Window</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">RDP logons in the 72 hours before encryption (Event 4624 Type 10)</span></div>
+      <button class="run-btn" onclick="runVQL(this,'rw2b')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       EventData.LogonType <span class="kw">AS</span> Type
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span>
+  <span class="kw">AND</span> EventData.LogonType = <span class="str">"10"</span>  <span class="cmt">-- RemoteInteractive = RDP</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-21T00:00:00Z"</span>
+  <span class="kw">AND</span> EventData.IpAddress !~ <span class="str">"^10\.|^192\.168\.|^172\."</span>  <span class="cmt">-- external IPs only</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">ASC</span></div>
+      <div class="vql-result" id="rw2b"><table class="vt">
+        <tr><th>Time</th><th>User</th><th>SourceIP</th><th>Type</th></tr>
+        <tr><td style="color:#c04040">2025-03-21 22:09:41</td><td style="color:#c04040"><strong>Administrator</strong></td><td style="color:#c04040"><strong>45.142.212.100</strong></td><td>10</td></tr>
+        <tr><td>2025-03-21 22:10:14</td><td>Administrator</td><td>45.142.212.100</td><td>10</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 3 — Correlate Failed Logons Before Success (Brute Force Evidence)</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Count failed logons per source IP in the 24h before the successful RDP</span>
+<span class="kw">SELECT</span> EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       count() <span class="kw">AS</span> FailCount
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4625</span>  <span class="cmt">-- failed logon</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-20T22:00:00Z"</span>
+  <span class="kw">AND</span> System.TimeCreated &lt; <span class="str">"2025-03-21T22:09:00Z"</span>
+<span class="kw">GROUP BY</span> EventData.IpAddress
+<span class="kw">ORDER BY</span> FailCount <span class="kw">DESC</span></div>
+
+  <div class="h3">Initial Access Verdict Framework</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Evidence Found</th><th>Likely Vector</th><th>Next Steps</th></tr>
+    <tr><td>Burst of Event 4625 from external IP then 4624 Type 10</td><td>RDP Brute Force</td><td>Check if RDP was exposed to internet; verify MFA status; change all passwords</td></tr>
+    <tr><td>Prefetch for browser/email app shortly before first malicious execution</td><td>Phishing / Maldoc</td><td>Recover the email; find what attachment was opened; check Zone.Identifier ADS for download origin</td></tr>
+    <tr><td>IIS/web server parent spawning cmd/powershell</td><td>Web Exploitation (CVE)</td><td>Check IIS logs for exploit payload; identify vulnerable component; check web shell writes</td></tr>
+    <tr><td>First malicious exe appears on multiple hosts simultaneously</td><td>Supply Chain / GPO abuse</td><td>Investigate AD; check GPO modifications; check software deployment logs</td></tr>
+    <tr><td>VPN logon from unusual geography immediately before incident</td><td>Credential Stuffing / Purchased Access</td><td>Check IAB forums; review VPN MFA; audit all active VPN sessions</td></tr>
+  </table></div>
+</div>
+
+<!-- PHASE 3 -->
+<div id="rw3" class="sp">
+  <div class="h2">Phase 3 — Hunt the Encryptor Binary</div>
+  <div class="banner"><strong>Finding the encryptor binary</strong> gives you: a hash to submit to VirusTotal, a path to reconstruct the delivery chain, and a YARA signature to hunt for it on other hosts before it executes.</div>
+
+  <div class="h3">Step 1 — Hash the Encryptor from the Affected Host</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">Hash suspicious executable at known path (from Prefetch finding)</span></div>
+      <button class="run-btn" onclick="runVQL(this,'rw3a')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> FullPath, Size, Mtime, Ctime,
+       hash(path=FullPath, accessor=<span class="str">"ntfs"</span>).MD5 <span class="kw">AS</span> MD5,
+       hash(path=FullPath, accessor=<span class="str">"ntfs"</span>).SHA256 <span class="kw">AS</span> SHA256
+<span class="kw">FROM</span> <span class="fn">stat</span>(filename=<span class="str">"C:/Users/jsmith/AppData/Local/Temp/svchost32.exe"</span>,
+          accessor=<span class="str">"ntfs"</span>)</div>
+      <div class="vql-result" id="rw3a"><table class="vt">
+        <tr><th>FullPath</th><th>Size</th><th>SHA256</th><th>Mtime</th></tr>
+        <tr><td>C:\Users\jsmith\AppData\...\svchost32.exe</td><td>1,458,176</td><td style="color:#c04040">a3f82b...d4e91c</td><td>2025-03-21 22:11</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 2 — Hunt the Same Hash Across the Entire Fleet</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Hunt: find any file matching this SHA256 on all endpoints</span>
+<span class="cmt">-- Create this as a hunt artifact with the hash as a parameter</span>
+<span class="kw">LET</span> TargetHash = <span class="str">"a3f82bd4e91c..."</span>  <span class="cmt">-- your encryptor's SHA256</span>
+
+<span class="kw">SELECT</span> FullPath, Size, Mtime,
+       hash(path=FullPath, accessor=<span class="str">"ntfs"</span>).SHA256 <span class="kw">AS</span> SHA256
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=[<span class="str">"C:/Users/**/*.exe"</span>, <span class="str">"C:/ProgramData/**/*.exe"</span>,
+               <span class="str">"C:/Windows/Temp/**/*.exe"</span>], accessor=<span class="str">"ntfs"</span>)
+<span class="kw">WHERE</span> hash(path=FullPath, accessor=<span class="str">"ntfs"</span>).SHA256 = TargetHash</div>
+
+  <div class="h3">Step 3 — Build a YARA Rule and Hunt Unexecuted Copies</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Upload the binary first, extract unique byte patterns, then hunt:</span>
+<span class="kw">LET</span> YaraRule = <span class="str">'''
+rule RansomwareEncryptor_Mar2025 {
+  meta:
+    description = "Encryptor from 2025-03-24 incident - svchost32 lure"
+    hash = "a3f82bd4e91c..."
+  strings:
+    $ransom_ext = ".LOCKED" ascii wide
+    $note_name  = "DECRYPT_MY_FILES" ascii wide
+    $mutex      = "Global\\RansomMutex2025" ascii wide
+  condition:
+    2 of them
+}
+'''</span>
+
+<span class="cmt">-- Hunt across all endpoints — files AND process memory</span>
+<span class="kw">SELECT</span> ClientId, FullPath, Rule, <span class="str">"file"</span> <span class="kw">AS</span> ScanType
+<span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, files=<span class="str">"C:/**"</span>)
+<span class="kw">UNION ALL</span>
+<span class="kw">SELECT</span> ClientId, str(str=Pid) <span class="kw">AS</span> FullPath, Rule, <span class="str">"memory"</span> <span class="kw">AS</span> ScanType
+<span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid <span class="kw">FROM</span> <span class="fn">pslist</span>() },
+  query={ <span class="kw">SELECT</span> Pid, Rule <span class="kw">FROM</span> <span class="fn">yara</span>(rules=YaraRule, pid=Pid) }
+)</div>
+
+  <div class="h3">Step 4 — Find VSS Deletion (Ransomware Pre-Encryption Step)</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">Hunt for vssadmin / bcdedit / wbadmin execution (shadow copy deletion)</span></div>
+      <button class="run-btn" onclick="runVQL(this,'rw3b')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> Name, LastRunTime, RunCount
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Prefetch</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"vssadmin|bcdedit|wbadmin|wmic"</span>
+<span class="kw">ORDER BY</span> LastRunTime <span class="kw">DESC</span></div>
+      <div class="vql-result" id="rw3b"><table class="vt">
+        <tr><th>Name</th><th>LastRunTime</th><th>RunCount</th></tr>
+        <tr><td style="color:#c04040">VSSADMIN.EXE-...</td><td style="color:#c04040">2025-03-24 02:08:54</td><td style="color:#c04040">1</td></tr>
+        <tr><td style="color:#c04040">BCDEDIT.EXE-...</td><td style="color:#c04040">2025-03-24 02:09:01</td><td style="color:#c04040">1</td></tr>
+        <tr><td style="color:#c04040">WBADMIN.EXE-...</td><td style="color:#c04040">2025-03-24 02:09:03</td><td style="color:#c04040">1</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <div class="banner-red"><strong>VSS deletion 3 minutes before encryption started</strong> is a classic ransomware pre-encryption sequence. Document the exact timestamps — this is key evidence of intent and will be used in the incident report and any legal/regulatory filing.</div>
+</div>
+
+<!-- PHASE 4 -->
+<div id="rw4" class="sp">
+  <div class="h2">Phase 4 — Scope Lateral Movement</div>
+  <div class="banner"><strong>The most common mistake in ransomware response</strong> is remediating only the hosts with ransom notes, then reconnecting them — only to be re-encrypted 48 hours later because the initial foothold host was missed. Lateral movement scoping is non-negotiable.</div>
+
+  <div class="h3">Step 1 — Find Every Host the Attacker Touched (Event 4624 Correlation)</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Hunt all DCs and servers for logons from the compromised account or IP</span>
+<span class="cmt">-- Run as a HUNT across all Windows Server-labeled clients</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       EventData.LogonType
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span>
+  <span class="kw">AND</span> (EventData.IpAddress = <span class="str">"10.0.0.42"</span>    <span class="cmt">-- patient zero IP</span>
+    <span class="kw">OR</span> EventData.TargetUserName = <span class="str">"jsmith"</span>)  <span class="cmt">-- compromised account</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-21T22:00:00Z"</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">ASC</span></div>
+
+  <div class="h3">Step 2 — Check SRUM for Data Movement Between Hosts</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- SRUM records bytes sent per application — find large internal transfers</span>
+<span class="kw">SELECT</span> TimeStamp, ExeInfo <span class="kw">AS</span> Process,
+       NetworkBytesReceived, NetworkBytesSent,
+       UserId
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.SRUM</span>()
+<span class="kw">WHERE</span> NetworkBytesSent > <span class="str">10000000</span>  <span class="cmt">-- sent more than 10MB</span>
+  <span class="kw">AND</span> TimeStamp > <span class="str">"2025-03-21T20:00:00Z"</span>
+<span class="kw">ORDER BY</span> NetworkBytesSent <span class="kw">DESC</span></div>
+
+  <div class="h3">Step 3 — Hunt PsExec Artifacts (Service Key Files)</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- PsExec drops key files in C:\Windows on the TARGET host</span>
+<span class="kw">SELECT</span> FullPath, Size, Mtime, Ctime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/Windows/PSEXEC-*.key"</span>, accessor=<span class="str">"ntfs"</span>)
+
+<span class="cmt">-- Also check service creation events (Event 7045)</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time, EventData.ServiceName,
+       EventData.ImagePath, EventData.AccountName
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/System.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">7045</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-21T22:00:00Z"</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">ASC</span></div>
+
+  <div class="h3">Lateral Movement Scope Map</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Evidence</th><th>Confirms Movement To</th><th>Action</th></tr>
+    <tr><td>Event 4624 (Type 3/10) on host X from patient-zero IP/account</td><td>Host X was accessed</td><td>Add host X to investigation scope; collect triage artifacts</td></tr>
+    <tr><td>PsExec key file on host Y with timestamp in incident window</td><td>Attacker ran commands on host Y</td><td>Treat host Y as fully compromised; collect all execution artifacts</td></tr>
+    <tr><td>PSEXESVC service in Event 7045 on host Z</td><td>PsExec used against host Z</td><td>Check what commands were run; look for dropped payloads</td></tr>
+    <tr><td>Amcache/Prefetch for scanning tools on multiple hosts</td><td>Attacker performed network recon from multiple positions</td><td>Each host where scanning tools ran is a pivot point — check further</td></tr>
+  </table></div>
+</div>
+
+<!-- PHASE 5 -->
+<div id="rw5" class="sp">
+  <div class="h2">Phase 5 — Determine if Data Was Exfiltrated</div>
+  <div class="banner-red"><strong>Exfiltration changes everything.</strong> If data was stolen, you have regulatory notification obligations (GDPR: 72 hours, HIPAA: 60 days, etc.), potential class action exposure, and a Data Leak Site to monitor. Proving exfiltration — or proving it did NOT happen — is critical.</div>
+
+  <div class="h3">Step 1 — SRUM Network Data Usage (Best Source for Exfil Evidence)</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">SRUM — Find processes that sent large volumes externally</span></div>
+      <button class="run-btn" onclick="runVQL(this,'rw5a')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> TimeStamp, ExeInfo <span class="kw">AS</span> Process,
+       NetworkBytesSent / <span class="str">1048576</span> <span class="kw">AS</span> MB_Sent,
+       NetworkBytesReceived / <span class="str">1048576</span> <span class="kw">AS</span> MB_Received,
+       UserId
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.SRUM</span>()
+<span class="kw">WHERE</span> MB_Sent > <span class="str">100</span>  <span class="cmt">-- sent more than 100MB</span>
+  <span class="kw">AND</span> TimeStamp > <span class="str">"2025-03-21T00:00:00Z"</span>
+  <span class="kw">AND</span> Process !~ <span class="str">"WindowsUpdate|OneDrive-corp|Teams|chrome"</span>
+<span class="kw">ORDER BY</span> MB_Sent <span class="kw">DESC</span></div>
+      <div class="vql-result" id="rw5a"><table class="vt">
+        <tr><th>TimeStamp</th><th>Process</th><th>MB_Sent</th><th>MB_Received</th></tr>
+        <tr><td style="color:#c04040">2025-03-23 01:44:12</td><td style="color:#c04040"><strong>rclone.exe</strong></td><td style="color:#c04040"><strong>47,832</strong></td><td>12</td></tr>
+        <tr><td style="color:#c04040">2025-03-23 01:44:12</td><td style="color:#c04040"><strong>rclone.exe</strong></td><td style="color:#c04040"><strong>31,205</strong></td><td>8</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Step 2 — Find Rclone / WinSCP Config Files</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Rclone stores its config including credentials at:</span>
+<span class="kw">SELECT</span> FullPath, Mtime, read_file(filename=FullPath) <span class="kw">AS</span> Contents
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=[
+  <span class="str">"C:/Users/*/AppData/Roaming/rclone/rclone.conf"</span>,
+  <span class="str">"C:/**/.config/rclone/rclone.conf"</span>,
+  <span class="str">"C:/Users/*/AppData/Roaming/WinSCP.ini"</span>,
+  <span class="str">"C:/**/*rclone*.conf"</span>
+], accessor=<span class="str">"ntfs"</span>)</div>
+
+  <div class="h3">Step 3 — DNS Queries for Cloud Storage / Paste Sites</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Windows.Events.DNSQueries captures DNS lookups via ETW</span>
+<span class="cmt">-- If monitoring was enabled, hunt the stored events:</span>
+<span class="kw">SELECT</span> Time, ProcessName, QueryName, Results
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Events.DNSQueries</span>()
+<span class="kw">WHERE</span> QueryName <span class="kw">=~</span> <span class="str">"mega\.nz|anonfile|gofile|pixeldrain|storj|</span>
+<span class="str">                     transfer\.sh|bashupload|file\.io|tmp\.sh|</span>
+<span class="str">                     userscloud|zippyshare|mediafire|wetransfer"</span>
+  <span class="kw">AND</span> Time > <span class="str">"2025-03-21T00:00:00Z"</span></div>
+</div>
+
+<!-- ARTIFACT CHECKLIST -->
+<div id="rw6" class="sp">
+  <div class="h2">Ransomware Investigation — Master Artifact Checklist</div>
+  <div class="banner-teal"><strong>Use this checklist for every ransomware engagement.</strong> Each artifact is listed with its investigative purpose and priority. Collect in order — higher priority first while the host is still live.</div>
+
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Priority</th><th>Velociraptor Artifact</th><th>Investigative Purpose</th><th>Phase</th></tr>
+    <tr><td><span class="badge badge-red">P1 LIVE</span></td><td>Windows.System.Pslist</td><td>Identify actively running encryptor and its PID/parent chain</td><td>Scope</td></tr>
+    <tr><td><span class="badge badge-red">P1 LIVE</span></td><td>Windows.Network.Netstat</td><td>Active C2 connections — capture before isolation</td><td>Scope</td></tr>
+    <tr><td><span class="badge badge-red">P1 LIVE</span></td><td>Windows.KapeFiles.Targets</td><td>Bulk collection of all key forensic files in one shot</td><td>Scope</td></tr>
+    <tr><td><span class="badge badge-orange">P2</span></td><td>Windows.Forensics.Prefetch</td><td>Prove execution, find oldest malicious binary, find recon tools</td><td>Initial Access</td></tr>
+    <tr><td><span class="badge badge-orange">P2</span></td><td>Windows.Forensics.Amcache</td><td>SHA1 hash of encryptor for VirusTotal; deleted binary evidence</td><td>Initial Access</td></tr>
+    <tr><td><span class="badge badge-orange">P2</span></td><td>Windows.Forensics.BAM</td><td>Full path + last run time of all executed binaries; harder to clean</td><td>Initial Access</td></tr>
+    <tr><td><span class="badge badge-orange">P2</span></td><td>Windows.EventLogs.EvtxHunter</td><td>4624/4625 (RDP brute force), 4688 (process creation), 7045 (service install)</td><td>Initial Access / Lateral</td></tr>
+    <tr><td><span class="badge badge-warn">P3</span></td><td>Windows.Forensics.SRUM</td><td>30-60 day history: exfil volumes per process, lateral movement data</td><td>Exfiltration / Lateral</td></tr>
+    <tr><td><span class="badge badge-warn">P3</span></td><td>Windows.System.ScheduledTasks</td><td>Ransomware persistence; encoded PowerShell tasks</td><td>Persistence</td></tr>
+    <tr><td><span class="badge badge-warn">P3</span></td><td>Windows.System.Services</td><td>Service-based persistence; PsExec service artifacts</td><td>Persistence / Lateral</td></tr>
+    <tr><td><span class="badge badge-warn">P3</span></td><td>Windows.Sys.StartupItems</td><td>Registry run-key persistence</td><td>Persistence</td></tr>
+    <tr><td><span class="badge badge-info">P4</span></td><td>Windows.Forensics.ShimCache</td><td>Evidence of tools that ran on servers (where Prefetch is off)</td><td>All phases on servers</td></tr>
+    <tr><td><span class="badge badge-info">P4</span></td><td>Generic.Forensics.SQLiteHunter</td><td>Browser history — phishing URL, download of initial payload</td><td>Initial Access</td></tr>
+    <tr><td><span class="badge badge-info">P4</span></td><td>Windows.Forensics.RecycleBin</td><td>Deleted tools the attacker tried to clean up</td><td>All phases</td></tr>
+    <tr><td><span class="badge badge-info">P4</span></td><td>parse_mft() + parse_usn()</td><td>Timeline of all file creation/deletion including deleted encryptors</td><td>Full timeline</td></tr>
+  </table></div>
+</div>
+`;}
+
+/* ══ PLAYBOOK: LATERAL MOVEMENT ═══════════════════════════════ */
+function panePlaybookLateral(){return`
+<div class="banner-red"><strong>Scenario:</strong> A Sigma alert fires — an account that belongs to a help-desk technician is authenticating to your domain controller at 03:00 from a workstation the technician has never touched. No malware alert has fired. This is the beginning of a lateral movement investigation.</div>
+
+<div id="lm-tabs" class="tab-bar">
+  <button class="tab active" data-target="lm1">Credential Compromise</button>
+  <button class="tab" data-target="lm2">Movement Mapping</button>
+  <button class="tab" data-target="lm3">DC & AD Attacks</button>
+  <button class="tab" data-target="lm4">Hunting at Scale</button>
+</div>
+
+<div id="lm1" class="sp active">
+  <div class="h2">Step 1 — Establish Where the Credential Was Compromised</div>
+  <div class="p">The attacker has a valid credential. Before chasing where they went, you must find where they got it. Was it phished? Dumped from LSASS? Keylogged? Stolen from a password manager?</div>
+
+  <div class="h3">Find the Host Where the Account Last Authenticated Legitimately</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">Find last known-good logon for the compromised account</span></div>
+      <button class="run-btn" onclick="runVQL(this,'lm1a')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="cmt">-- Hunt across all DCs — find every logon for this account in past 7 days</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       EventData.WorkstationName <span class="kw">AS</span> Workstation,
+       EventData.LogonType,
+       EventData.AuthenticationPackageName <span class="kw">AS</span> AuthPkg
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span>
+  <span class="kw">AND</span> EventData.TargetUserName = <span class="str">"helpdesk_bob"</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-17T00:00:00Z"</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">ASC</span></div>
+      <div class="vql-result" id="lm1a"><table class="vt">
+        <tr><th>Time</th><th>SourceIP</th><th>Workstation</th><th>LogonType</th><th>AuthPkg</th></tr>
+        <tr><td>2025-03-22 08:45</td><td>10.0.0.55</td><td>HELPDESK-PC01</td><td>2 (Interactive)</td><td>Kerberos</td></tr>
+        <tr><td>2025-03-22 09:12</td><td>10.0.0.55</td><td>HELPDESK-PC01</td><td>3 (Network)</td><td>Kerberos</td></tr>
+        <tr><td style="color:#c04040">2025-03-24 03:00</td><td style="color:#c04040">10.0.0.42</td><td style="color:#c04040">WIN-WS042</td><td style="color:#c04040">3 (Network)</td><td style="color:#c04040">NTLM</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <div class="banner-red"><strong>Red flags above:</strong> (1) The first attacker logon is from a DIFFERENT workstation than Bob's usual machine. (2) It uses NTLM instead of Kerberos — a strong indicator of Pass-the-Hash. (3) It's at 03:00 when Bob is asleep. Go investigate HELPDESK-PC01 — that's where the credential was stolen.</div>
+
+  <div class="h3">Investigate the Source Host (HELPDESK-PC01) for Credential Theft</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- On HELPDESK-PC01: hunt for LSASS dump creation</span>
+<span class="kw">SELECT</span> TimeStamp, Filename, Reason
+<span class="kw">FROM</span> <span class="fn">parse_usn</span>(device=<span class="str">"\\\.\\C:"</span>)
+<span class="kw">WHERE</span> Filename <span class="kw">=~</span> <span class="str">"lsass|.dmp|.DMP"</span>
+  <span class="kw">AND</span> TimeStamp > <span class="str">"2025-03-22T08:00:00Z"</span>
+
+<span class="cmt">-- Also check Prefetch for credential dumping tools</span>
+<span class="kw">SELECT</span> Name, LastRunTime, RunCount
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Prefetch</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"procdump|mimikatz|pwdump|fgdump|wce|gsecdump|safetykatz"</span></div>
+
+  <div class="h3">NTLM vs Kerberos — Why It Matters</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Auth Package</th><th>LogonType</th><th>Attacker Implication</th></tr>
+    <tr><td>Kerberos</td><td>3 (Network)</td><td>Attacker likely has a cleartext password or valid TGT</td></tr>
+    <tr><td>NTLM</td><td>3 (Network)</td><td><strong>Strong indicator of Pass-the-Hash</strong> — attacker has an NTLM hash, not necessarily the password</td></tr>
+    <tr><td>Kerberos</td><td>10 (RemoteInteractive)</td><td>Standard RDP with valid password or ticket</td></tr>
+    <tr><td>NTLM</td><td>10 (RemoteInteractive)</td><td>RDP with Pass-the-Hash (restricted admin mode) or older NTLM fallback</td></tr>
+    <tr><td>Any</td><td>4648 Event ID</td><td>Explicit credentials used — attacker ran as a different account (RunAs pattern)</td></tr>
+  </table></div>
+</div>
+
+<div id="lm2" class="sp">
+  <div class="h2">Step 2 — Map Every Host the Attacker Visited</div>
+  <div class="banner"><strong>Think like the attacker:</strong> they landed on WIN-WS042 with Bob's credentials, then pivoted. From there they may have RDP'd to a server, SMB'd to a file share, or WMI'd to a DC. You need to trace every hop.</div>
+
+  <div class="h3">Build a Movement Timeline — All Source/Destination Pairs</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Hunt ALL Windows hosts: find any logon sourcing from WIN-WS042 (10.0.0.42)</span>
+<span class="cmt">-- This tells you every host the attacker accessed FROM the beachhead</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       EventData.LogonType,
+       hostname() <span class="kw">AS</span> DestinationHost
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span>
+  <span class="kw">AND</span> EventData.IpAddress = <span class="str">"10.0.0.42"</span>  <span class="cmt">-- beachhead IP</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-24T03:00:00Z"</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">ASC</span></div>
+
+  <div class="h3">Find WinRM / PowerShell Remoting Sessions</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- wsmprovhost.exe is the PowerShell remoting host — its children are attacker commands</span>
+<span class="kw">LET</span> procs = <span class="kw">SELECT</span> Pid, Ppid, Name, CommandLine, CreateTime <span class="kw">FROM</span> <span class="fn">pslist</span>()
+
+<span class="kw">SELECT</span> child.Pid, child.Name, child.CommandLine, child.CreateTime
+<span class="kw">FROM</span> procs child
+<span class="kw">JOIN</span> procs parent <span class="kw">ON</span> child.Ppid = parent.Pid
+<span class="kw">WHERE</span> parent.Name =~ <span class="str">"wsmprovhost"</span>
+
+<span class="cmt">-- Also check Microsoft-Windows-WinRM/Operational event log</span>
+<span class="kw">SELECT</span> System.TimeCreated, EventData.Param1 <span class="kw">AS</span> ComputerName
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Microsoft-Windows-WinRM%4Operational.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">91</span>  <span class="cmt">-- WinRM session created</span></div>
+
+  <div class="h3">RDP Cache Bitmap Analysis (Where Did They RDP To?)</div>
+  <div class="banner-teal"><strong>RDP cache bitmaps</strong> are fragments of the remote desktop screen stored on the SOURCE machine. Even if no logs exist on the destination, these bitmaps prove the connection occurred and may reveal the desktop of the remote host — including open documents, visible credentials, or application names.</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Collect RDP cache files for offline analysis</span>
+<span class="kw">SELECT</span> FullPath, Size, Mtime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=[
+  <span class="str">"C:/Users/*/AppData/Local/Microsoft/Terminal Server Client/Cache/*"</span>,
+  <span class="str">"C:/Documents and Settings/*/Local Settings/Application Data/Microsoft/Terminal Server Client/Cache/*"</span>
+], accessor=<span class="str">"ntfs"</span>)
+
+<span class="cmt">-- Upload the cache files for bmc-tools offline parsing</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">upload</span>(file=FullPath)
+<span class="kw">FROM</span> glob(globs=<span class="str">"C:/Users/*/AppData/Local/Microsoft/Terminal Server Client/Cache/*"</span>)</div>
+</div>
+
+<div id="lm3" class="sp">
+  <div class="h2">Step 3 — Detect Domain Controller & Active Directory Attacks</div>
+  <div class="banner-red"><strong>If the attacker reaches a Domain Controller, the entire domain is compromised.</strong> DCSync, Golden Ticket, NTDS.dit extraction, and AdminSDHolder abuse all originate from — or target — the DC. Hunt these specifically.</div>
+
+  <div class="h3">DCSync Detection (Replication Rights Abuse)</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- DCSync generates Event 4662 on the DC with specific access rights</span>
+<span class="cmt">-- The attacker's account requests replication rights WITHOUT being a DC</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.SubjectUserName <span class="kw">AS</span> RequestingUser,
+       EventData.ObjectName <span class="kw">AS</span> Object,
+       EventData.Properties <span class="kw">AS</span> AccessRights
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4662</span>
+  <span class="kw">AND</span> EventData.Properties <span class="kw">=~</span> <span class="str">"1131f6ad|1131f6aa|89e95b76"</span>  <span class="cmt">-- DS-Replication GUIDs</span>
+  <span class="kw">AND</span> EventData.SubjectUserName !~ <span class="str">"\\$$"</span>  <span class="cmt">-- exclude machine accounts (real DCs)</span></div>
+
+  <div class="h3">NTDS.dit Extraction — The Crown Jewels</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Hunt for NTDS.dit copies outside expected locations</span>
+<span class="kw">SELECT</span> FullPath, Size, Mtime, Ctime
+<span class="kw">FROM</span> <span class="fn">glob</span>(globs=<span class="str">"C:/**/NTDS.dit"</span>, accessor=<span class="str">"ntfs"</span>)
+<span class="kw">WHERE</span> FullPath !~ <span class="str">"C:/Windows/NTDS/NTDS.dit"</span>  <span class="cmt">-- any copy outside this path is suspicious</span>
+
+<span class="cmt">-- Also check for VSS-based extraction (attacker copies from shadow)</span>
+<span class="kw">SELECT</span> TimeStamp, Filename, Reason
+<span class="kw">FROM</span> <span class="fn">parse_usn</span>(device=<span class="str">"\\\.\\C:"</span>)
+<span class="kw">WHERE</span> Filename =~ <span class="str">"NTDS.dit|SYSTEM.bak|ntds.bak"</span>
+  <span class="kw">AND</span> Reason =~ <span class="str">"CREATE|RENAME"</span></div>
+
+  <div class="h3">Kerberoasting Detection</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Kerberoasting requests TGS tickets for service accounts</span>
+<span class="cmt">-- Event 4769 with encryption type 0x17 (RC4 — weak, crackable offline)</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> ServiceAccount,
+       EventData.ClientAddress <span class="kw">AS</span> RequestingIP,
+       EventData.TicketEncryptionType <span class="kw">AS</span> EncType
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4769</span>
+  <span class="kw">AND</span> EventData.TicketEncryptionType = <span class="str">"0x17"</span>  <span class="cmt">-- RC4 = Kerberoastable</span>
+  <span class="kw">AND</span> EventData.TargetUserName !~ <span class="str">"\\$$"</span>  <span class="cmt">-- exclude machine accounts</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">ASC</span></div>
+</div>
+
+<div id="lm4" class="sp">
+  <div class="h2">Step 4 — Hunt Lateral Movement Indicators at Fleet Scale</div>
+
+  <div class="h3">Hunt 1: Anomalous NTLM Authentications (Pass-the-Hash Fleet-Wide)</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Run as a HUNT — find NTLM Type 3 logons from workstations to servers</span>
+<span class="cmt">-- (legitimate users typically use Kerberos from a workstation; NTLM is a red flag)</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       EventData.TargetUserName <span class="kw">AS</span> User,
+       EventData.IpAddress <span class="kw">AS</span> SourceIP,
+       EventData.WorkstationName,
+       hostname() <span class="kw">AS</span> DestHost
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value = <span class="str">4624</span>
+  <span class="kw">AND</span> EventData.LogonType = <span class="str">"3"</span>
+  <span class="kw">AND</span> EventData.AuthenticationPackageName = <span class="str">"NTLM"</span>
+  <span class="kw">AND</span> EventData.TargetUserName !~ <span class="str">"\\$$|ANONYMOUS"</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-24T00:00:00Z"</span></div>
+
+  <div class="h3">Hunt 2: New Accounts Created or Added to Admin Groups</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Attackers often create backdoor accounts for persistence</span>
+<span class="kw">SELECT</span> System.TimeCreated <span class="kw">AS</span> Time,
+       System.EventID.Value <span class="kw">AS</span> EventID,
+       EventData.TargetUserName <span class="kw">AS</span> Account,
+       EventData.SubjectUserName <span class="kw">AS</span> CreatedBy,
+       EventData.TargetSid <span class="kw">AS</span> SID
+<span class="kw">FROM</span> <span class="fn">parse_evtx</span>(filename=<span class="str">"C:/Windows/System32/winevt/Logs/Security.evtx"</span>)
+<span class="kw">WHERE</span> System.EventID.Value <span class="kw">IN</span> (<span class="str">4720</span>, <span class="str">4732</span>, <span class="str">4728</span>, <span class="str">4756</span>)
+  <span class="cmt">-- 4720=account created, 4732/4728/4756=added to admin/global/universal group</span>
+  <span class="kw">AND</span> System.TimeCreated > <span class="str">"2025-03-24T00:00:00Z"</span>
+<span class="kw">ORDER BY</span> Time <span class="kw">ASC</span></div>
+
+  <div class="h3">Hunt 3: Execution of Known Lateral Movement Tools</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Hunt for Prefetch evidence of tools used for lateral movement</span>
+<span class="kw">SELECT</span> Name, LastRunTime, RunCount
+<span class="kw">FROM</span> <span class="fn">Artifact.Windows.Forensics.Prefetch</span>()
+<span class="kw">WHERE</span> Name <span class="kw">=~</span> <span class="str">"psexec|psexesvc|wmiexec|smbexec|wmic|winrs|</span>
+<span class="str">              impacket|evil-winrm|bloodhound|sharphound|</span>
+<span class="str">              adfind|ldifde|csvde|nltest|dsquery|net\.exe"</span>
+<span class="kw">ORDER BY</span> LastRunTime <span class="kw">DESC</span></div>
+</div>
+`;}
+
+/* ══ PLAYBOOK: MEMORY & MALWARE ═══════════════════════════════ */
+function panePlaybookMemory(){return`
+<div class="banner-violet"><strong>Scenario:</strong> A YARA hunt returns a hit — the <code>MsMpEng.exe</code> process on a workstation triggered a rule for Cobalt Strike. There's no malicious file on disk. The process looks legitimate. This is in-memory malware — the most sophisticated attacker tradecraft. Here's how to investigate it.</div>
+
+<div id="mm-tabs" class="tab-bar">
+  <button class="tab active" data-target="mm1">Identify Suspicious Processes</button>
+  <button class="tab" data-target="mm2">Process Injection</button>
+  <button class="tab" data-target="mm3">YARA Memory Hunt</button>
+  <button class="tab" data-target="mm4">Memory Acquisition</button>
+</div>
+
+<div id="mm1" class="sp active">
+  <div class="h2">Step 1 — Identify Suspicious Processes</div>
+  <div class="banner"><strong>In-memory malware hides inside legitimate processes.</strong> The most common techniques are: process injection (shellcode injected into a running process), process hollowing (legitimate process started suspended, code replaced), and reflective DLL loading (DLL loaded into memory without touching disk).</div>
+
+  <div class="h3">Hunt 1: Find Processes with Network Connections But No Disk Image</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">Processes with outbound connections whose binary doesn't exist on disk</span></div>
+      <button class="run-btn" onclick="runVQL(this,'mm1a')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">LET</span> connections = <span class="kw">SELECT</span> Pid, FamilyString, Status,
+  Laddr.IP <span class="kw">AS</span> LocalIP, Laddr.Port <span class="kw">AS</span> LocalPort,
+  Raddr.IP <span class="kw">AS</span> RemoteIP, Raddr.Port <span class="kw">AS</span> RemotePort
+<span class="kw">FROM</span> <span class="fn">netstat</span>()
+<span class="kw">WHERE</span> Status = <span class="str">"ESTABLISHED"</span>
+  <span class="kw">AND</span> Raddr.IP !~ <span class="str">"^10\.|^192\.168\.|^172\.|^127\."</span>  <span class="cmt">-- external connections</span>
+
+<span class="kw">SELECT</span> p.Pid, p.Name, p.Exe, c.RemoteIP, c.RemotePort,
+       stat(filename=p.Exe).Size <span class="kw">AS</span> FileExists
+<span class="kw">FROM</span> <span class="fn">foreach</span>(row=connections,
+  query={ <span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">pslist</span>() <span class="kw">WHERE</span> Pid = Pid })
+<span class="kw">WHERE</span> FileExists = <span class="str">NULL</span>  <span class="cmt">-- binary doesn't exist on disk!</span></div>
+      <div class="vql-result" id="mm1a"><table class="vt">
+        <tr><th>Pid</th><th>Name</th><th>Exe</th><th>RemoteIP</th><th>RemotePort</th><th>FileExists</th></tr>
+        <tr><td style="color:#c04040"><strong>4921</strong></td><td style="color:#c04040"><strong>MsMpEng.exe</strong></td><td style="color:var(--muted)">C:\ProgramData\Microsoft\Windows Defender\...\MsMpEng.exe</td><td style="color:#c04040"><strong>185.220.101.42</strong></td><td style="color:#c04040"><strong>443</strong></td><td style="color:#c04040">NULL</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Hunt 2: Find Processes with RWX Memory Regions (Shellcode Indicator)</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Memory regions that are Readable + Writable + Executable are highly suspicious</span>
+<span class="cmt">-- Legitimate code is typically R+X only; shellcode needs W+X to write then execute</span>
+<span class="kw">SELECT</span> Pid, Name,
+       Vad.BaseAddress <span class="kw">AS</span> Address,
+       Vad.RegionSize <span class="kw">AS</span> Size,
+       Vad.Protection <span class="kw">AS</span> Perms,
+       Vad.Type
+<span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>()
+        <span class="kw">WHERE</span> Name !~ <span class="str">"chrome|firefox|java"</span> },  <span class="cmt">-- JIT compilers use RWX legitimately</span>
+  query={ <span class="kw">SELECT</span> Pid, Name, * <span class="kw">FROM</span> <span class="fn">vad</span>(pid=Pid)
+          <span class="kw">WHERE</span> Protection =~ <span class="str">"EXECUTE_READWRITE"</span> }
+)</div>
+
+  <div class="h3">Hunt 3: Loaded DLLs Not on Disk (Reflective Loading)</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">Find DLLs loaded in process memory that have no corresponding file on disk</span></div>
+      <button class="run-btn" onclick="runVQL(this,'mm1b')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">SELECT</span> Pid, ProcessName, DllBase, DllPath
+<span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">AS</span> ProcessName <span class="kw">FROM</span> <span class="fn">pslist</span>() },
+  query={ <span class="kw">SELECT</span> Pid, ProcessName, DllBase, ModuleName <span class="kw">AS</span> DllPath
+          <span class="kw">FROM</span> <span class="fn">modules</span>(pid=Pid)
+          <span class="kw">WHERE</span> <span class="fn">stat</span>(filename=ModuleName).Size = <span class="str">NULL</span> }
+)
+<span class="kw">WHERE</span> DllPath != <span class="str">""</span></div>
+      <div class="vql-result" id="mm1b"><table class="vt">
+        <tr><th>Pid</th><th>ProcessName</th><th>DllBase</th><th>DllPath</th></tr>
+        <tr><td style="color:#c04040">4921</td><td style="color:#c04040">MsMpEng.exe</td><td>0x7FF800000000</td><td style="color:#c04040">[memory only — no path]</td></tr>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<div id="mm2" class="sp">
+  <div class="h2">Step 2 — Identify the Injection Technique</div>
+
+  <div class="h3">Process Hollowing Detection</div>
+  <div class="p">Process hollowing starts a legitimate process in a suspended state, unmaps its code from memory, and replaces it with malicious code. The process looks legitimate but is running the attacker's payload.</div>
+  <div class="banner-red"><strong>Key indicator:</strong> The executable path listed in the process table points to a legitimate binary (e.g., svchost.exe at the correct path), but the actual code in memory does not match what's on disk. The SHA256 of the in-memory image will differ from the file on disk.</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Detect process hollowing: hash the executable IN MEMORY vs ON DISK</span>
+<span class="cmt">-- A mismatch = the in-memory code has been replaced</span>
+<span class="kw">LET</span> disk_hash = hash(path=Exe, accessor=<span class="str">"ntfs"</span>).SHA256
+<span class="kw">LET</span> mem_hash  = hash(pid=Pid, accessor=<span class="str">"process"</span>).SHA256
+
+<span class="kw">SELECT</span> Pid, Name, Exe, disk_hash, mem_hash,
+       disk_hash = mem_hash <span class="kw">AS</span> Matches
+<span class="kw">FROM</span> <span class="fn">pslist</span>()
+<span class="kw">WHERE</span> Exe != <span class="str">""</span>
+  <span class="kw">AND</span> disk_hash != mem_hash  <span class="cmt">-- THIS IS THE RED FLAG</span>
+  <span class="kw">AND</span> Name !~ <span class="str">"System|Memory Compression"</span></div>
+
+  <div class="h3">Thread Injection Detection</div>
+  <div class="p">Classic injection: attacker allocates memory in the target process, writes shellcode, then creates a remote thread to execute it. The new thread's start address points to allocated memory, not a loaded module.</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Look for threads with start addresses in anonymous (non-module) memory regions</span>
+<span class="cmt">-- This is the hallmark of CreateRemoteThread-based injection</span>
+<span class="kw">SELECT</span> Pid, Name, ThreadId, StartAddress, Module
+<span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>() },
+  query={ <span class="kw">SELECT</span> Pid, Name, ThreadId, StartAddress,
+                 get_mapped_file(pid=Pid, address=StartAddress) <span class="kw">AS</span> Module
+          <span class="kw">FROM</span> <span class="fn">threads</span>(pid=Pid)
+          <span class="kw">WHERE</span> Module = <span class="str">NULL</span> }  <span class="cmt">-- no module = anonymous memory = suspicious</span>
+)</div>
+
+  <div class="h3">Common Injection Techniques — Quick Reference</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Technique</th><th>How It Works</th><th>Key Indicator</th><th>Detection</th></tr>
+    <tr><td>CreateRemoteThread</td><td>VirtualAllocEx → WriteProcessMemory → CreateRemoteThread</td><td>Thread start address in non-module memory</td><td>Thread start address analysis, YARA on memory region</td></tr>
+    <tr><td>Process Hollowing</td><td>CreateProcess(SUSPENDED) → ZwUnmapViewOfSection → WriteProcessMemory → ResumeThread</td><td>Disk/memory image hash mismatch</td><td>Compare file hash vs memory image hash</td></tr>
+    <tr><td>Reflective DLL Injection</td><td>Custom loader writes DLL directly into memory without calling LoadLibrary</td><td>DLL loaded in memory with no corresponding file on disk</td><td>Enumerate modules and check file existence</td></tr>
+    <tr><td>Process Doppelgänging</td><td>Uses NTFS transactions to create a phantom file, maps it, then rolls back the transaction</td><td>Process backed by a deleted file (TxF artifact)</td><td>Advanced — requires TxF-aware memory analysis</td></tr>
+    <tr><td>Shellcode via NtMapViewOfSection</td><td>Maps malicious section into target process without allocating with VirtualAllocEx</td><td>Mapped memory region with RWX permissions not backed by a file</td><td>VAD analysis for file-backed vs anonymous sections</td></tr>
+  </table></div>
+</div>
+
+<div id="mm3" class="sp">
+  <div class="h2">Step 3 — YARA Memory Hunting at Scale</div>
+  <div class="banner-teal"><strong>YARA scanning process memory</strong> is the most reliable way to find in-memory implants — it doesn't matter how well the malware hides on disk. If the payload is executing in RAM, YARA can find it.</div>
+
+  <div class="h3">Cobalt Strike Beacon — Memory Hunt</div>
+  <div class="vql-demo">
+    <div class="vql-hdr">
+      <div style="display:flex;align-items:center;gap:10px"><div class="vql-dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c841"></div></div><span class="vql-name">YARA hunt: Cobalt Strike beacon in all process memory fleet-wide</span></div>
+      <button class="run-btn" onclick="runVQL(this,'mm3a')">▶ Run</button>
+    </div>
+    <div class="vql-body">
+      <div class="cb" style="margin:0"><span class="kw">LET</span> CSBeaconYara = <span class="str">'''
+rule CobaltStrikeBeacon {
+  meta:
+    description = "Cobalt Strike Beacon - common shellcode stub + config markers"
+  strings:
+    $stub1   = { FC 48 83 E4 F0 E8 }          // x64 shellcode stub
+    $config1 = "%s (admin)" wide ascii
+    $config2 = "ReflectiveLoader" ascii
+    $pipe    = "\\\\.\\pipe\\" ascii wide
+    $sleep   = { 68 ?? ?? 00 00 E8 }          // sleep timer push pattern
+  condition:
+    2 of them
+}
+'''</span>
+
+<span class="cmt">-- Hunt ALL process memory across the fleet</span>
+<span class="kw">SELECT</span> Pid, Name, Rule, Namespace, Tags,
+       <span class="str">"Process Memory"</span> <span class="kw">AS</span> ScanType
+<span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>() },
+  query={ <span class="kw">SELECT</span> Pid, Name, Rule, Namespace, Tags
+          <span class="kw">FROM</span> <span class="fn">yara</span>(rules=CSBeaconYara, pid=Pid) }
+)</div>
+      <div class="vql-result" id="mm3a"><table class="vt">
+        <tr><th>Pid</th><th>Name</th><th>Rule</th><th>ScanType</th></tr>
+        <tr><td style="color:#c04040"><strong>4921</strong></td><td style="color:#c04040"><strong>MsMpEng.exe</strong></td><td style="color:#c04040">CobaltStrikeBeacon</td><td>Process Memory</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="h3">Generic Shellcode Patterns — Broad Hunt</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="kw">LET</span> ShellcodeYara = <span class="str">'''
+rule SuspiciousShellcode {
+  meta:
+    description = "Generic shellcode patterns - review all hits"
+  strings:
+    $x64_stub   = { FC 48 83 E4 F0 }          // x64 shellcode alignment
+    $x86_stub   = { FC E8 89 00 00 00 }        // classic x86 GetPC stub
+    $rev_shell  = { 6A 11 6A 02 6A 01 }        // socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)
+    $meterpreter = "metsrv" ascii wide
+    $sliver     = "GRPC" ascii wide
+  condition:
+    any of them
+}
+'''</span>
+
+<span class="kw">SELECT</span> Pid, Name, Rule
+<span class="kw">FROM</span> <span class="fn">foreach</span>(
+  row={ <span class="kw">SELECT</span> Pid, Name <span class="kw">FROM</span> <span class="fn">pslist</span>()
+        <span class="kw">WHERE</span> Name !~ <span class="str">"chrome|firefox|node|java|python"</span> },
+  query={ <span class="kw">SELECT</span> Pid, Name, Rule <span class="kw">FROM</span> <span class="fn">yara</span>(rules=ShellcodeYara, pid=Pid) }
+)</div>
+</div>
+
+<div id="mm4" class="sp">
+  <div class="h2">Step 4 — Memory Acquisition & Full Analysis</div>
+  <div class="banner"><strong>When Velociraptor's in-line analysis isn't enough,</strong> you need a full memory image for offline analysis with Volatility 3 or MemProcFS. Acquiring memory should happen before isolation and before shutdown.</div>
+
+  <div class="h3">Dump a Specific Process Memory Region</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Dump the full memory of the suspicious process for offline analysis</span>
+<span class="cmt">-- The dump can be analyzed with Volatility or submitted to sandbox</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">upload</span>(
+  file=<span class="fn">proc_dump</span>(pid=<span class="str">4921</span>)  <span class="cmt">-- PID of suspicious process</span>
+)</div>
+
+  <div class="h3">Full System Memory Acquisition via WinPmem</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt">-- Velociraptor can deploy WinPmem and acquire a full RAM image</span>
+<span class="cmt">-- The image uploads directly to the Velociraptor server</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">Artifact.Windows.Memory.Acquisition</span>()</div>
+
+  <div class="h3">Offline Analysis with Volatility 3</div>
+  <div class="cb"><button class="copy-btn">Copy</button><span class="cmt"># After downloading the memory image from Velociraptor:</span>
+
+<span class="cmt"># List all processes (including hidden ones not in pslist)</span>
+python3 vol.py -f mem.img windows.psscan.PsScan
+
+<span class="cmt"># Find injected code and anomalous memory regions</span>
+python3 vol.py -f mem.img windows.malfind.Malfind
+
+<span class="cmt"># List network connections from memory</span>
+python3 vol.py -f mem.img windows.netscan.NetScan
+
+<span class="cmt"># List loaded modules — compare to running pslist output</span>
+python3 vol.py -f mem.img windows.dlllist.DllList --pid 4921
+
+<span class="cmt"># YARA scan in Volatility</span>
+python3 vol.py -f mem.img windows.vadyarascan.VadYaraScan --yara-file rules.yar
+
+<span class="cmt"># Dump the suspicious process for static analysis</span>
+python3 vol.py -f mem.img windows.pslist.PsList --pid 4921 --dump</div>
+
+  <div class="h3">What Volatility malfind Looks For</div>
+  <div class="tbl-wrap"><table class="vt">
+    <tr><th>Indicator</th><th>Meaning</th><th>Action</th></tr>
+    <tr><td>Memory region with PAGE_EXECUTE_READWRITE protection</td><td>Region is both writable and executable — shellcode staging area</td><td>Dump the region; run YARA on it; submit to sandbox</td></tr>
+    <tr><td>Region starts with MZ header (PE magic bytes)</td><td>A PE file (EXE/DLL) is mapped into memory without going through the loader</td><td>Extract and analyze the PE — this is likely a reflectively loaded DLL</td></tr>
+    <tr><td>Region not backed by any file on disk</td><td>Anonymous memory allocation — classic injection target</td><td>Dump and analyze; cross-reference start address with thread analysis</td></tr>
+    <tr><td>Region backed by a deleted file</td><td>Binary executed and then deleted — fileless malware pattern</td><td>Extract from memory; hash; VirusTotal; check Amcache for SHA1</td></tr>
+  </table></div>
+</div>
+`;}
+
+const PANES = {
+  overview:paneOverview,
+  quickstart:paneQuickstart,
+  architecture:paneArchitecture,
+  'dfir-fundamentals':paneDfirFundamentals,
+  telemetry:paneTelemetry,
+  'ir-lifecycle':paneIrLifecycle,
+  'playbook-ransomware':panePlaybookRansomware,
+  'playbook-lateral':panePlaybookLateral,
+  'playbook-memory':panePlaybookMemory,
+  vql:paneVQL,
+  artifacts:paneArtifacts,
+  clients:paneClients,
+  hunting:paneHunting,
+  forensics:paneForensics,
+  monitoring:paneMonitoring,
+  offline:paneOffline,
+  notebooks:paneNotebooks,
+  api:paneAPI,
+  reference:paneReference
+};
+
+function goTo(id){
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.toggle('active',el.dataset.id===id));
+  document.getElementById('tbTitle').textContent = TITLES[id]||id;
+  document.getElementById('tbSub').textContent = SUBS[id]||'';
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="pane active">${(PANES[id]||(() => '<p class="p">Coming soon.</p>'))()}</div>`;
+  c.scrollTop = 0;
+  // Bind tabs
+  c.querySelectorAll('.tab-bar button.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const bar = tab.closest('.tab-bar');
+      bar.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.target;
+      const pane = c.querySelector('.pane.active');
+      pane.querySelectorAll('.sp').forEach(sp=>sp.classList.toggle('active',sp.id===target));
+    });
+  });
+  if(id==='artifacts') setTimeout(renderArtGrid,0);
+}
+
+function renderArtGrid(cat='all'){
+  const g = document.getElementById('artGrid');
+  if(!g)return;
+  const filtered = cat==='all' ? ARTS : ARTS.filter(a=>a.c===cat);
+  g.innerHTML = filtered.map(a=>`
+    <div class="art-card">
+      <div class="art-name">${a.n}</div>
+      <div class="art-desc">${a.d}</div>
+      <div>${a.t.map(t=>`<span class="pill p-t">${t}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+window.filterArts = function(cat,btn){
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b===btn));
+  renderArtGrid(cat);
+};
+
+window.runVQL = function(btn,id){
+  const r = document.getElementById(id);
+  if(r){r.classList.add('shown');btn.textContent='✓ Done';btn.classList.add('done');}
+};
+
+window.toggleAcc = function(h){
+  const body = h.nextElementSibling;
+  const arr = h.querySelector('.acc-arr');
+  body.classList.toggle('open');
+  if(arr) arr.style.transform = body.classList.contains('open') ? 'rotate(90deg)' : '';
+};
+
+/* ── Copy buttons ── */
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('copy-btn')){
+    const cb = e.target.closest('.cb');
+    if(!cb) return;
+    // Get text content excluding the button itself
+    const clone = cb.cloneNode(true);
+    clone.querySelectorAll('.copy-btn').forEach(b=>b.remove());
+    const text = clone.innerText.trim();
+    navigator.clipboard.writeText(text).then(()=>{
+      const orig = e.target.textContent;
+      e.target.textContent = '✓ Copied';
+      e.target.style.background = 'rgba(26,171,138,.25)';
+      e.target.style.borderColor = 'var(--teal)';
+      e.target.style.color = 'var(--teal)';
+      setTimeout(()=>{
+        e.target.textContent = orig;
+        e.target.style.background = '';
+        e.target.style.borderColor = '';
+        e.target.style.color = '';
+      }, 1800);
+    }).catch(()=>{
+      e.target.textContent = '✗ Failed';
+      setTimeout(()=>e.target.textContent = orig, 1500);
+    });
+  }
+});
+
+/* ── Build sidebar ── */
+function buildNav(){
+  const sb = document.getElementById('sbNav');
+  sb.innerHTML = NAV.map(item=>`
+    ${item.section ? `<div class="sb-section">${item.section}</div>` : ''}
+    <div class="sb-item${item.id==='overview'?' active':''}" data-id="${item.id}" onclick="goTo('${item.id}')">
+      <span class="sb-icon">${item.icon}</span>
+      <span class="sb-label">${item.label}</span>
+    </div>`).join('');
+}
+
+/* ── Theme toggle ── */
+function applyTheme(){
+  document.documentElement.classList.toggle('dark',isDark);
+  document.body.classList.toggle('dark',isDark);
+  document.getElementById('themeBtn').textContent = isDark ? '☽ Dark' : '☀ Light';
+}
+
+document.getElementById('themeBtn').onclick = ()=>{isDark=!isDark;applyTheme();};
+
+/* ── Sidebar collapse ── */
+document.getElementById('collapseBtn').onclick = ()=>{
+  sidebarCollapsed=!sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed',sidebarCollapsed);
+  document.getElementById('collapseBtn').textContent = sidebarCollapsed ? '›' : '‹';
+};
+
+/* ── Init ── */
+applyTheme();
+buildNav();
+goTo('overview');
+</script>
+</body>
+</html>
